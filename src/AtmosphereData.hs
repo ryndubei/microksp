@@ -7,7 +7,7 @@
 -- The altitude doesn't have to be in ascending order, or contain no duplicates
 -- (in case there is a duplicate, the first result is taken)
 
-module AtmosphereData (densityFunction, densityTable) where
+module AtmosphereData (densityFunction, densityTable, tableToFunction, defaultDensityTable) where
 
 import Lib ( Planet(..), Altitude, Temperature, Pressure, Density )
 import Data.Char (toLower)
@@ -23,6 +23,9 @@ constGas = 8.31446261815324
 -- Windows it is C:/Users/<user>/AppData/Roaming
 atmosphereDataDirectory :: FilePath
 atmosphereDataDirectory = "microksp"
+
+defaultDensityTable :: [(Altitude,Density)]
+defaultDensityTable = [(0,0)]
 
 -- | Given a Planet, return an IO function taking any Altitude and returning
 -- the corresponding density. Works by just connecting the dots on an

@@ -1,8 +1,11 @@
 -- Shared definitions for all other modules.
 module Lib where
 
+import Data.Set as S
+import Graphics.Gloss.Interface.Pure.Game (Key)
+
 -- | Datatype for planets with an atmosphere 
-data Planet = Kerbin | Duna | Eve | Laythe | Jool deriving (Eq,Show)
+data Planet = Kerbin | Duna | Eve | Laythe | Jool deriving (Eq,Show,Enum)
 
 -- | Any near-unchanging simulation parameters go here.
 data Vessel = Vessel 
@@ -15,6 +18,7 @@ data Vessel = Vessel
   , gravityKickAngle :: Double -- ^ The (clockwise) angle of the gravity kick (radians)
   , gravityKickSpeed :: Double -- ^ The speed at which the gravity kick is done (m/s)
   , deltaV :: Double -- ^ The maximum delta-V of the rocket (m/s)
+  , keys :: S.Set Key -- ^ Keys defining simulation parameters to be changed on next update
   }
 
 -- | Datatype for both Vessel and its changing variables (time, velocity and
