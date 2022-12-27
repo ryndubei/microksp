@@ -17,13 +17,14 @@ windowWidth = 800
 windowHeight = 800
 
 skyHeight :: Float
-skyHeight = windowHeight / 2 - windowHeight / 10
+skyHeight = windowHeight / 2 
 
 groundHeight :: Float
 groundHeight = windowHeight / 2
 
 windowHeightMetres :: Planet -> Double
-windowHeightMetres planet = 2*(atmosphereHeight planet + 0.25*atmosphereHeight planet)
+windowHeightMetres planet = 
+  realToFrac (windowHeight / skyHeight) * atmosphereHeight planet
 
 windowScale :: Planet -> Double
 windowScale planet = realToFrac windowHeight / windowHeightMetres planet
