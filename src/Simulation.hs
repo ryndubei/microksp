@@ -36,12 +36,12 @@ velocityDerivative vessel v h t d =
     gVector = (-g) `mulSV` yAxis
     currentMass = m0 - (thrust / vEx) * t
     thrustVector = (thrust / magV v) `mulSV` v
-    airResistanceVector = (0.5 * cDA * d * magV v) `mulSV` v
+    airResistanceVector = (-0.5 * cDA * d * magV v) `mulSV` v
   in
     if v == (0,0)
       then (0,(thrust / currentMass) - g)
     else
-      gVector `addV` ((1 / currentMass) `mulSV` (thrustVector `subV` airResistanceVector))
+      gVector `addV` ((1 / currentMass) `mulSV` (thrustVector `addV` airResistanceVector))
   where
     planet = currentPlanet vessel
     cDA = dragCoefficientArea vessel
@@ -57,14 +57,16 @@ velocityStep vessel v h t d =
 
 -- | Given a Vessel, initial conditions, and an Altitude -> Density function, 
 -- return the list of tuples (Time,Velocity,Altitude) until the vessel reaches
--- space, reaches apoapsis, or runs out of fuel, whichever comes first.
+-- space, reaches apoapsis, collides with the ground, or runs out of fuel, 
+--- whichever comes first.
 fly :: (Time,Velocity,Altitude) -> Vessel -> (Altitude -> Density) -> [(Time,Velocity,Altitude)]
 fly initialConditions vessel f =
   let
     hasFuel (t,_,_) = t + constKSPPhysicsTick <= burnTime vessel
+    aboveGround (_,_,h) = h >= 0
     notPastApoapsis (_,(_,vy),_) = vy >= 0
     notInSpace (_,_,h) = h < atmosphereHeight (currentPlanet vessel)
-  in takeWhile hasFuel (iterate flyStep initialConditions)
+  in takeWhile (\x -> hasFuel x && aboveGround x) (iterate flyStep initialConditions)
   where
     flyStep :: (Time,Velocity,Altitude) -> (Time,Velocity,Altitude)
     flyStep (t,v,h) = (t',v',h+sy)
