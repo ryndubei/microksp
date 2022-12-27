@@ -1,0 +1,75 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           microksp
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/ryndubei/microksp#readme>
+homepage:       https://github.com/ryndubei/microksp#readme
+bug-reports:    https://github.com/ryndubei/microksp/issues
+author:         ryndubei
+maintainer:     ryndubei
+copyright:      2022 ryndubei
+license:        GPL-3.0-or-later
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/ryndubei/microksp
+
+library
+  exposed-modules:
+      AtmosphereData
+      Lib
+      Plot
+      Simulation
+  other-modules:
+      Paths_microksp
+  autogen-modules:
+      Paths_microksp
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , directory
+    , gloss ==1.13.*
+  default-language: Haskell2010
+
+executable microksp-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_microksp
+  autogen-modules:
+      Paths_microksp
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , directory
+    , gloss ==1.13.*
+    , microksp
+  default-language: Haskell2010
+
+test-suite microksp-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_microksp
+  autogen-modules:
+      Paths_microksp
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , directory
+    , gloss ==1.13.*
+    , microksp
+  default-language: Haskell2010
