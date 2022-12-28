@@ -11,7 +11,7 @@ import Lib
   , Vector
   , Matrix2x2, burnTime
   , atmosphereHeight
-  , gFieldStrength )
+  , gFieldStrength, mulMatrixVector, rotMatrix, magV, mulSV, addV )
 
 -- | Unit vector corresponding to the x axis.
 xAxis :: Vector
@@ -104,28 +104,3 @@ flyFromStart vessel f =
     g = gFieldStrength planet
     currentAcceleration t h = (thrust / (m0 - thrust * t / vEx)) - g h
 
-
---------------------
--- Quick vector math functions
---------------------
-
-addV :: Vector -> Vector -> Vector
-addV (x1,y1) (x2,y2) = (x1+x2,y1+y2)
-
-negV :: Vector -> Vector
-negV (x,y) = (-x,-y)
-
-subV :: Vector -> Vector -> Vector
-subV v1 v2 = v1 `addV` negV v2
-
-mulSV :: Double -> Vector -> Vector
-mulSV s (x,y) = (s*x,s*y)
-
-magV :: Vector -> Double
-magV (x,y) = sqrt (x*x + y*y)
-
-mulMatrixVector :: Matrix2x2 -> Vector -> Vector
-mulMatrixVector (c1,c2) (a,b) = mulSV a c1 `addV` mulSV b c2
-
-rotMatrix :: Double -> Matrix2x2
-rotMatrix angle = ((cos angle,sin angle),(-sin angle,cos angle))
