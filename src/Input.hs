@@ -6,10 +6,15 @@ import qualified Data.Set as S
 import Graphics.Gloss.Geometry.Angle (degToRad)
 
 handleKeys :: Event -> Vessel -> Vessel
+handleKeys (EventKey (Char 'z') Down _ _) vessel =
+  if imageScale vessel <= 1
+    then vessel
+    else vessel { imageScale = imageScale vessel `div` 2}
+handleKeys (EventKey (Char 'x') Down _ _) vessel = vessel { imageScale = imageScale vessel * 2}
 handleKeys (EventKey (Char 'p') Down _ _) vessel = 
   vessel { currentPlanet = if currentPlanet vessel /= maxBound 
                             then succ (currentPlanet vessel)
-                            else toEnum 0 }
+                            else minBound }
 handleKeys (EventKey k Down _ _) vessel = 
   if isMovementKey k
     then vessel {keys = S.insert k (keys vessel)}

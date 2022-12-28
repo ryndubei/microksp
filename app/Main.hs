@@ -28,6 +28,7 @@ initialConditions = Vessel
   , gravityKickSpeed = 100
   , deltaV = 3400
   , keys = S.empty
+  , imageScale = 1
   }
 
 main :: IO ()

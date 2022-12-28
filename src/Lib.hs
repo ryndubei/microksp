@@ -19,6 +19,7 @@ data Vessel = Vessel
   , gravityKickSpeed :: Double -- ^ The speed at which the gravity kick is done (m/s)
   , deltaV :: Double -- ^ The maximum delta-V of the rocket (m/s)
   , keys :: S.Set Key -- ^ Keys defining simulation parameters to be changed on next update
+  , imageScale :: Int -- ^ factor of image scale down from the default
   }
 
 -- | Datatype for both Vessel and its changing variables (time, velocity and

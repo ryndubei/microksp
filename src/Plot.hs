@@ -5,8 +5,8 @@ module Plot
   , plot ) where
 
 import Graphics.Gloss
-import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density, burnTime)
-import Data.Bifunctor (bimap)
+import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density, burnTime, planetRadius)
+import Data.Bifunctor (bimap, Bifunctor (first))
 import Data.List (nubBy, sortOn)
 import Graphics.Gloss.Geometry.Angle (radToDeg)
 
@@ -30,6 +30,14 @@ windowHeightMetres planet =
 windowScale :: Planet -> Double
 windowScale planet = realToFrac windowHeight / windowHeightMetres planet
 
+launchPoint :: Float
+launchPoint = -0.4 * windowWidth
+
+planetCentre :: Planet -> (Float,Float)
+planetCentre planet = 
+  let size = realToFrac $ windowScale planet * planetRadius planet
+  in (launchPoint, -size)
+
 pathColor :: Color
 pathColor = red
 
@@ -46,9 +54,9 @@ groundColor :: Planet -> Color
 groundColor planet =
   case planet of
     Kerbin -> dark (dark green)
-    Duna -> dark red
-    Eve -> dark violet
-    Laythe -> greyN 0.2
+    Duna -> light red
+    Eve -> violet
+    Laythe -> greyN 0.4
     Jool -> dark green
 
 canvas :: [(Altitude,Density)] -> Vessel -> Picture
@@ -62,10 +70,7 @@ infoText vessel = undefined
           speedText = text $ "Gravity kick speed: " ++ (show . round) (gravityKickSpeed vessel) ++ "m/s"
           angleText = text $ "Gravity kick angle: " ++ (show . round . radToDeg . realToFrac) (gravityKickAngle vessel)
           thrustText = text $ "Engine thrust: " ++ (show . round) (engineForce vessel) ++ "N"
-          massText = text $ "Starting mass: " ++ (show . round) (startingMass vessel) ++ "kg"
-          deltavText = text $ "Delta-V: " ++ (show . round) (deltaV vessel) ++ "m/s"
-
-      in [timeText,speedText,angleText, thrustText, massText]
+      in [timeText,speedText,angleText, thrustText]
 
 textColor :: Color
 textColor = black
@@ -73,14 +78,18 @@ textColor = black
 groundSky :: [(Altitude,Density)] -> Planet -> Picture
 groundSky atmosphereTable planet =
   let
-    ground = 
-      color gColor . translate 0 (-windowHeight / 4) 
-      $ rectangleSolid windowWidth groundHeight
+    ground = drawPlanet planet
     sky = drawAtmosphere atmosphereTable planet
-  in pictures [ground,sky]
-  where
-    gColor = groundColor planet
+  in pictures [sky, ground]
 
+drawPlanet :: Planet -> Picture
+drawPlanet planet =
+  let size = realToFrac $ windowScale planet * planetRadius planet
+      (x,y) = planetCentre planet
+      planetCircle = color (groundColor planet) $ circleSolid size
+  in translate x y planetCircle
+
+-- | Plot the flight path of the vessel over a canvas representing the planet the vessel is on.
 plot :: [(Altitude,Density)] -> Vessel -> [(Time,Velocity,Altitude)] -> Picture
 plot atmosphereTable vessel flightPath = 
   let
@@ -88,8 +97,9 @@ plot atmosphereTable vessel flightPath =
     pointsWindowScale = map (bimap (*windowScale planet) (*windowScale planet)) points
     pathWindow = 
       line $ map (bimap realToFrac realToFrac) pointsWindowScale
-  in pictures [canvas atmosphereTable vessel,color pathColor $ translate (-0.4*windowWidth) 0 pathWindow]
+  in scaleFinal $ pictures [canvas atmosphereTable vessel,color pathColor $ translate launchPoint 0 pathWindow]
   where
+    scaleFinal = scale (1 / realToFrac (imageScale vessel)) (1 / realToFrac (imageScale vessel))
     planet = currentPlanet vessel
     dxs = zipWith 
       (\(t1,(v1,_),_) (t2,(v2,_),_) -> 0.5 * (t2-t1) * abs(v2-v1) + (t2-t1) * min v2 v1)
@@ -101,17 +111,22 @@ plot atmosphereTable vessel flightPath =
 drawAtmosphere :: [(Altitude,Density)] -> Planet -> Picture
 drawAtmosphere atmosphereTable planet = 
   let
-    zippedAltitudes = [ (alt1,alt2,d) | ((alt1,d),(alt2,_)) <- zip atmosphereTable' (tail atmosphereTable') ] 
+    -- reversed to start from top atmosphere layer
+    zippedAltitudes = reverse [ (alt1,alt2,d) | ((alt1,d),(alt2,_)) <- zip atmosphereTable' (tail atmosphereTable') ] 
   in pictures $ map (\(a1,a2,d) -> drawLayer a1 a2 d) zippedAltitudes
   where
+    -- atmosphere table might have duplicates or be unsorted so we have to do this
     atmosphereTable' = nubBy (\a b -> fst a == fst b) . sortOn fst $ atmosphereTable
     initialDensity = (snd . head) atmosphereTable'
-    drawLayer alt1 alt2 d = 
-      color (withAlpha opacity (atmosphereColor planet)) . translate 0 centre $ rectangleSolid width height
+    -- ignore dead parts of function, it went through several revisions and works fine right now
+    drawLayer _ alt2 d = 
+      let 
+        atmosphereCircle = translate x y $ circleSolid r2 
+      -- additional black circle is necessary for preventing upper layers from layering on top - make sure
+      -- drawLayer is applied to the topmost layer first so the layers below don't get drawn over!
+      in pictures [color background atmosphereCircle, color layerColor atmosphereCircle]
       where
+        (x,y) = planetCentre planet
         opacity = realToFrac $ d / initialDensity
-        alt1' = realToFrac $ windowScale planet * alt1
-        alt2' = realToFrac $ windowScale planet * alt2
-        width = windowWidth
-        height = alt2' - alt1'
-        centre = 0.5*(alt1'+alt2')
+        r2 = realToFrac $ windowScale planet * (alt2 + planetRadius planet)
+        layerColor = withAlpha opacity (atmosphereColor planet)

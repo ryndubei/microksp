@@ -1,7 +1,7 @@
 microksp
 ========
 
-Gravity turn assistant for KSP.
+Gravity turn assistant for Kerbal Space Program.
 
 Build
 -----
@@ -28,6 +28,7 @@ Controls
 - right/left : increase/decrease gravity kick angle
 - shift/ctrl : increase/decrease engine thrust
 - p : cycle through planets
+- x/z : scale image size up/down
 
 License
 -------
