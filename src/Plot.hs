@@ -5,9 +5,10 @@ module Plot
   , plot ) where
 
 import Graphics.Gloss
-import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density)
+import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density, burnTime)
 import Data.Bifunctor (bimap)
 import Data.List (nubBy, sortOn)
+import Graphics.Gloss.Geometry.Angle (radToDeg)
 
 background :: Color
 background = black
@@ -29,8 +30,8 @@ windowHeightMetres planet =
 windowScale :: Planet -> Double
 windowScale planet = realToFrac windowHeight / windowHeightMetres planet
 
-canvas :: [(Altitude,Density)] -> Planet -> Picture
-canvas = groundSky
+pathColor :: Color
+pathColor = red
 
 atmosphereColor :: Planet -> Color
 atmosphereColor planet =
@@ -50,6 +51,25 @@ groundColor planet =
     Laythe -> greyN 0.2
     Jool -> dark green
 
+canvas :: [(Altitude,Density)] -> Vessel -> Picture
+canvas table vessel = groundSky table (currentPlanet vessel)
+
+infoText :: Vessel -> Picture
+infoText vessel = undefined
+  where 
+    texts =
+      let timeText = text $ "Burn time :" ++ (show . round) (burnTime vessel) ++ "s"
+          speedText = text $ "Gravity kick speed: " ++ (show . round) (gravityKickSpeed vessel) ++ "m/s"
+          angleText = text $ "Gravity kick angle: " ++ (show . round . radToDeg . realToFrac) (gravityKickAngle vessel)
+          thrustText = text $ "Engine thrust: " ++ (show . round) (engineForce vessel) ++ "N"
+          massText = text $ "Starting mass: " ++ (show . round) (startingMass vessel) ++ "kg"
+          deltavText = text $ "Delta-V: " ++ (show . round) (deltaV vessel) ++ "m/s"
+
+      in [timeText,speedText,angleText, thrustText, massText]
+
+textColor :: Color
+textColor = black
+
 groundSky :: [(Altitude,Density)] -> Planet -> Picture
 groundSky atmosphereTable planet =
   let
@@ -68,8 +88,7 @@ plot atmosphereTable vessel flightPath =
     pointsWindowScale = map (bimap (*windowScale planet) (*windowScale planet)) points
     pathWindow = 
       line $ map (bimap realToFrac realToFrac) pointsWindowScale
-    pathColor = red
-  in pictures [canvas atmosphereTable planet,color pathColor $ translate (-0.4*windowWidth) 0 pathWindow]
+  in pictures [canvas atmosphereTable vessel,color pathColor $ translate (-0.4*windowWidth) 0 pathWindow]
   where
     planet = currentPlanet vessel
     dxs = zipWith 

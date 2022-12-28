@@ -5,7 +5,7 @@ import Data.Set as S
 import Graphics.Gloss.Interface.Pure.Game (Key)
 
 -- | Datatype for planets with an atmosphere 
-data Planet = Kerbin | Duna | Eve | Laythe | Jool deriving (Eq,Show,Enum)
+data Planet = Kerbin | Duna | Eve | Laythe | Jool deriving (Eq,Show,Enum,Bounded)
 
 -- | Any near-unchanging simulation parameters go here.
 data Vessel = Vessel 
@@ -46,34 +46,33 @@ constStandardGravity = 9.80665
 
 -- | The standard gravitational parameter (GM) of a given planet in m^3/s^2
 planetMU :: Planet -> Double
--- TODO: add more data
 planetMU planet =
   case planet of
     Kerbin -> 3.5316e+12
-    Duna -> undefined
-    Eve -> undefined
-    Laythe -> undefined
-    Jool -> undefined
+    Duna -> 3.0136321e+11
+    Eve -> 8.1717302e+12
+    Laythe -> 1.962e+12
+    Jool -> 2.82528e+14
 
 -- | The equatorial radius of a planet in m
 planetRadius :: Planet -> Double
 planetRadius planet =
   case planet of
     Kerbin -> 600000.0
-    Duna -> undefined
-    Eve -> undefined
-    Laythe -> undefined
-    Jool -> undefined
+    Duna -> 320000.0
+    Eve -> 700000.0
+    Laythe -> 500000.0
+    Jool -> 6000000.0
 
 -- | The height of the atmosphere on a planet from sea level (m)
 atmosphereHeight :: Planet -> Double
 atmosphereHeight planet =
   case planet of
     Kerbin -> 70000.0
-    Duna -> undefined
-    Eve -> undefined
-    Laythe -> undefined
-    Jool -> undefined
+    Duna -> 50000.0
+    Eve -> 90000.0
+    Laythe -> 50000.0
+    Jool -> 200000.0
 
 -- | Given a planet and an altitude above sea level, give the gravitational
 -- field strength at that altitude.
