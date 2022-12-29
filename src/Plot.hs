@@ -5,7 +5,7 @@ module Plot
   , plot ) where
 
 import Graphics.Gloss
-import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density, burnTime, planetRadius)
+import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density, burnTime, planetRadius, Position)
 import Data.Bifunctor (bimap, Bifunctor (first))
 import Data.List (nubBy, sortOn)
 import Graphics.Gloss.Geometry.Angle (radToDeg)
@@ -19,9 +19,6 @@ windowHeight = 800
 
 skyHeight :: Float
 skyHeight = windowHeight / 2 
-
-groundHeight :: Float
-groundHeight = windowHeight / 2
 
 windowHeightMetres :: Planet -> Double
 windowHeightMetres planet = 
@@ -90,10 +87,10 @@ drawPlanet planet =
   in translate x y planetCircle
 
 -- | Plot the flight path of the vessel over a canvas representing the planet the vessel is on.
-plot :: [(Altitude,Density)] -> Vessel -> [(Time,Velocity,Altitude)] -> Picture
+plot :: [(Altitude,Density)] -> Vessel -> [(Time,Velocity,Position)] -> Picture
 plot atmosphereTable vessel flightPath = 
   let
-    points = zip xs (map (\(_,_,h) -> h) flightPath) 
+    points = map (\(_,_,pos) -> pos) flightPath
     pointsWindowScale = map (bimap (*windowScale planet) (*windowScale planet)) points
     pathWindow = 
       line $ map (bimap realToFrac realToFrac) pointsWindowScale
@@ -101,12 +98,6 @@ plot atmosphereTable vessel flightPath =
   where
     scaleFinal = scale (1 / realToFrac (imageScale vessel)) (1 / realToFrac (imageScale vessel))
     planet = currentPlanet vessel
-    dxs = zipWith 
-      (\(t1,(v1,_),_) (t2,(v2,_),_) -> 0.5 * (t2-t1) * abs(v2-v1) + (t2-t1) * min v2 v1)
-      flightPath (tail flightPath)
-    xs = scanl (+) 0 dxs
-    -- TODO: use more robust functions for finding the integral of velocity over time,
-    -- like 1/2at^2+v0t - make sure to upgrade Simulation module too
 
 drawAtmosphere :: [(Altitude,Density)] -> Planet -> Picture
 drawAtmosphere atmosphereTable planet = 
@@ -118,15 +109,15 @@ drawAtmosphere atmosphereTable planet =
     -- atmosphere table might have duplicates or be unsorted so we have to do this
     atmosphereTable' = nubBy (\a b -> fst a == fst b) . sortOn fst $ atmosphereTable
     initialDensity = (snd . head) atmosphereTable'
-    -- ignore dead parts of function, it went through several revisions and works fine right now
+    -- ignore dead parts of function, it used to accept 3 parameters but got revised
     drawLayer _ alt2 d = 
       let 
         atmosphereCircle = translate x y $ circleSolid r2 
-      -- additional black circle is necessary for preventing upper layers from layering on top - make sure
-      -- drawLayer is applied to the topmost layer first so the layers below don't get drawn over!
+        layerColor = withAlpha opacity (atmosphereColor planet)
+      -- additional black circle is necessary for overriding the effects of the previous
+      -- layer - make sure the top layer is drawn first!
       in pictures [color background atmosphereCircle, color layerColor atmosphereCircle]
       where
         (x,y) = planetCentre planet
         opacity = realToFrac $ d / initialDensity
         r2 = realToFrac $ windowScale planet * (alt2 + planetRadius planet)
-        layerColor = withAlpha opacity (atmosphereColor planet)

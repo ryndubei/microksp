@@ -33,9 +33,6 @@ initialConditions = Vessel
 
 main :: IO ()
 main = do
-  atmosphereTable <- densityTable (currentPlanet initialConditions)
-  let f = tableToFunction atmosphereTable
-  let flightData = flyFromStart initialConditions f
   drawFlight <- getDrawFlight
   play window background 60 initialConditions drawFlight handleKeys update
 
@@ -56,11 +53,3 @@ getDrawFlight = do
       (\e -> 
         hPutStrLn stderr ("Failed to read atmosphere data: " ++ show (e :: IOException)) 
         >> return defaultDensityTable )
-
--- | deprecated, kept for reference
-_drawFlight :: Vessel -> IO Picture
-_drawFlight vessel = do
-  atmosphereTable <- densityTable (currentPlanet vessel)
-  let f = tableToFunction atmosphereTable
-  let flightData = flyFromStart vessel f
-  return (plot atmosphereTable vessel flightData)

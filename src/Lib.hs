@@ -82,7 +82,7 @@ gFieldStrength planet h = planetMU planet / (r*r)
   where r = planetRadius planet + h
 
 -- | Given a Planet and a Position, return the vector in the direction of the
--- planet's centre.
+-- planet's centre from that position.
 toCentre:: Planet -> Position -> Vector
 toCentre planet pos =
   let radius = planetRadius planet
@@ -130,3 +130,6 @@ mulMatrixVector (c1,c2) (a,b) = mulSV a c1 `addV` mulSV b c2
 
 rotMatrix :: Double -> Matrix2x2
 rotMatrix angle = ((cos angle,sin angle),(-sin angle,cos angle))
+
+normaliseV :: Vector -> Vector
+normaliseV v = (1 / magV v) `mulSV` v

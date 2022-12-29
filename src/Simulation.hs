@@ -11,7 +11,8 @@ import Lib
   , Vector
   , Matrix2x2, burnTime
   , atmosphereHeight
-  , gFieldStrength, mulMatrixVector, rotMatrix, magV, mulSV, addV )
+  , gFieldStrength, mulMatrixVector, rotMatrix, magV, mulSV, addV
+  , toCentre, Planet, Position, negV, normaliseV, planetRadius, subV )
 
 -- | Unit vector corresponding to the x axis.
 xAxis :: Vector
@@ -21,6 +22,10 @@ xAxis = (1,0)
 yAxis :: Vector
 yAxis = (0,1)
 
+-- | Unit vector corresponding to the local y axis.
+localYAxis :: Planet -> Position -> Vector
+localYAxis planet pos = (negV . normaliseV) (toCentre planet pos)
+
 -- | Average length of a KSP physics tick in seconds.
 constKSPPhysicsTick :: Double
 constKSPPhysicsTick = 0.02
@@ -29,78 +34,80 @@ constKSPPhysicsTick = 0.02
 -- Time is measured from start of burn.
 -- If velocity = 0, the orientation of the rocket is assumed to be
 -- up.
--- Gravity is always assumed to be straight down - this has to be accounted for.
-velocityDerivative :: Vessel -> Velocity -> Altitude -> Time -> Density -> Vector
-velocityDerivative vessel v h t d =
+velocityDerivative :: Vessel -> Velocity -> Position -> Time -> Density -> Vector
+velocityDerivative vessel v pos t d =
   let
-    gVector = (-g) `mulSV` yAxis
+    gVector = (-g) `mulSV` localYAxis planet pos
     currentMass = m0 - (thrust / vEx) * t
-    thrustVector = (thrust / magV v) `mulSV` v
+    thrustVector = thrust `mulSV` normaliseV v
     airResistanceVector = (-0.5 * cDA * d * magV v) `mulSV` v
   in
     if v == (0,0)
-      then (0,(thrust / currentMass) - g)
-    else
-      gVector `addV` ((1 / currentMass) `mulSV` (thrustVector `addV` airResistanceVector))
+      then gVector `addV` ((1 / currentMass) `mulSV` (thrust `mulSV` localYAxis planet pos))
+      else gVector `addV` ((1 / currentMass) `mulSV` (thrustVector `addV` airResistanceVector))
   where
     planet = currentPlanet vessel
     cDA = dragCoefficientArea vessel
     thrust = engineForce vessel
     vEx = exhaustVelocity vessel
     m0 = startingMass vessel
+    pos' = negV (toCentre planet pos)
+    h = magV pos' - planetRadius planet
     g = gFieldStrength planet h
 
 -- | Increment current velocity by 1 physics tick
-velocityStep :: Vessel -> Velocity -> Altitude -> Time -> Density -> Velocity
-velocityStep vessel v h t d =
-  v `addV` mulSV constKSPPhysicsTick (velocityDerivative vessel v h t d)
+velocityStep :: Vessel -> Velocity -> Position -> Time -> Density -> Velocity
+velocityStep vessel v pos t d =
+  v `addV` mulSV constKSPPhysicsTick (velocityDerivative vessel v pos t d)
 
 -- | Given a Vessel, initial conditions, and an Altitude -> Density function, 
--- return the list of tuples (Time,Velocity,Altitude) until the vessel reaches
--- space, reaches apoapsis, collides with the ground, or runs out of fuel, 
+-- return the list of tuples (Time,Velocity,Altitude) until the vessel
+-- collides with the ground, or runs out of fuel, 
 --- whichever comes first.
-fly :: (Time,Velocity,Altitude) -> Vessel -> (Altitude -> Density) -> [(Time,Velocity,Altitude)]
+fly :: (Time,Velocity,Position) -> Vessel -> (Altitude -> Density) -> [(Time,Velocity,Position)]
 fly initialConditions vessel f =
   let
     hasFuel (t,_,_) = t + constKSPPhysicsTick <= burnTime vessel
-    aboveGround (_,_,h) = h >= 0
-    notPastApoapsis (_,(_,vy),_) = vy >= 0
-    notInSpace (_,_,h) = h < atmosphereHeight (currentPlanet vessel)
+    aboveGround (_,_,pos) = magV (toCentre planet pos) >= planetRadius planet
   in takeWhile (\x -> hasFuel x && aboveGround x) (iterate flyStep initialConditions)
   where
-    flyStep :: (Time,Velocity,Altitude) -> (Time,Velocity,Altitude)
-    flyStep (t,v,h) = (t',v',h+sy)
+    planet = currentPlanet vessel
+    flyStep :: (Time,Velocity,Position) -> (Time,Velocity,Position)
+    flyStep (t,v,pos) = (t',v',pos `addV` dpos)
       where
-        (_,vy) = v
         t' = t+constKSPPhysicsTick
-        v' = velocityStep vessel v h t (f h)
-        (_,vy') = v'
-        sy = 0.5*constKSPPhysicsTick*abs (vy'-vy) + constKSPPhysicsTick * min vy' vy
+        posFromPlanet = negV (toCentre planet pos)
+        h = magV posFromPlanet - planetRadius planet
+        v' = velocityStep vessel v pos t (f h)
+        vavg = 0.5 `mulSV` (v' `addV` v)
+        dpos = constKSPPhysicsTick `mulSV` vavg
 
--- | Given the parameters, return the list of tuples (Time,Velocity,Altitude)
+
+-- | Given the parameters, return the list of tuples (Time,Velocity,Position)
 -- until the vessel reaches space, reaches apoapsis, or runs out of fuel,
 -- whichever comes first.
 -- Includes a gravity kick and does not require initial conditions
 -- (as they are taken from vessel data).
-flyFromStart :: Vessel -> (Altitude -> Density) -> [(Time,Velocity,Altitude)]
+flyFromStart :: Vessel -> (Altitude -> Density) -> [(Time,Velocity,Position)]
 flyFromStart vessel f =
   let
     launchBurn =
       takeWhile
-      (\(time,vel,alt) -> magV vel
+      (\(time,vel,position) -> magV vel
         < gravityKickSpeed vessel
-        + constKSPPhysicsTick * currentAcceleration time alt)
+        + constKSPPhysicsTick * currentAcceleration time position)
       (fly initialConditions vessel f)
-    (t,v,h) = last launchBurn
+    (t,v,pos) = last launchBurn
     v' = mulMatrixVector (rotMatrix (-gravityKickAngle vessel)) v
-    gravityTurn = fly (t,v',h) vessel f
+    gravityTurn = fly (t,v',pos) vessel f
   in init launchBurn ++ gravityTurn
   where
     planet = currentPlanet vessel
-    initialConditions = (0,(0,0),launchAltitude vessel)
+    initialConditions = (0,(0,0),(0,launchAltitude vessel))
     m0 = startingMass vessel
     thrust = engineForce vessel
     vEx = exhaustVelocity vessel
     g = gFieldStrength planet
-    currentAcceleration t h = (thrust / (m0 - thrust * t / vEx)) - g h
+    h pos = magV (toCentre planet pos) - planetRadius planet
+    currentAcceleration t pos = (thrust / (m0 - thrust * t / vEx)) - g (h pos)
 
