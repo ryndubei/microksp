@@ -11,20 +11,8 @@ import Lib
   , Vector
   , burnTime
   , gFieldStrength, mulMatrixVector, rotMatrix, magV, mulSV, addV
-  , toCentre, Planet, Position, negV, normaliseV, planetRadius, endMass
-  , atmosphereHeight, magVSquared )
-
--- | Unit vector corresponding to the x axis.
-xAxis :: Vector
-xAxis = (1,0)
-
--- | Unit vector corresponding to the y axis.
-yAxis :: Vector
-yAxis = (0,1)
-
--- | Unit vector corresponding to the local y axis.
-localYAxis :: Planet -> Position -> Vector
-localYAxis planet pos = (negV . normaliseV) (toCentre planet pos)
+  , toCentre, Position, negV, normaliseV, planetRadius, endMass
+  , atmosphereHeight, magVSquared, localYAxis )
 
 -- | Average length of a KSP physics tick in seconds.
 constKSPPhysicsTick :: Double

@@ -10,7 +10,8 @@ data Planet = Kerbin | Duna | Eve | Laythe | Jool deriving (Eq,Show,Enum,Bounded
 -- | Any near-unchanging simulation parameters go here.
 data Vessel = Vessel 
   { dragCoefficientArea :: Double -- ^ Drag coefficient * cross-section area.
-  , engineForce :: Double -- ^ Thrust of the vessel (N)
+  , engineForce :: Double -- ^ Thrust of the vessel in a vacuum (N)
+  , engineForceRatioASL :: Double -- ^ Engine force factor at 1 atm pressure
   , exhaustVelocity :: Double -- ^ The exhaust velocity of the engine (m/s)
   , startingMass :: Double -- ^ The total mass of the rocket at start (kg)
   , launchAltitude :: Double -- ^ The altitude of the launch site of the vessel (m)
@@ -47,6 +48,20 @@ twr vessel = engineForce vessel / (gFieldStrength (currentPlanet vessel) 0 * sta
 
 constStandardGravity :: Double
 constStandardGravity = 9.80665
+
+-- | 1 atm in pascals
+const1Atm :: Double
+const1Atm = 101325.0
+
+engineForceAt :: Vessel -> (Pressure -> Double)
+engineForceAt vessel pres = engineForce vessel - dthrust
+  where
+    presAtm = pres / const1Atm
+    dthrust = (1 - engineForceRatioASL vessel) * presAtm
+
+--------------------
+-- Planet data
+--------------------
 
 -- | The standard gravitational parameter (GM) of a given planet in m^3/s^2
 planetMU :: Planet -> Double
@@ -94,13 +109,23 @@ gFieldStrength :: Planet -> Altitude -> Double
 gFieldStrength planet h = planetMU planet / (r*r)
   where r = planetRadius planet + h
 
+-- | Given a Planet and an altitude above sea level, find the orbital velocity
+-- for a circular orbit at that altitude.
+orbitalVel :: Planet -> Double -> Double
+orbitalVel planet h = sqrt(planetMU planet / (h + planetRadius planet))
+
 -- | Given a Planet and a Position, return the vector in the direction of the
 -- planet's centre from that position.
-toCentre:: Planet -> Position -> Vector
+toCentre :: Planet -> Position -> Vector
 toCentre planet pos =
   let radius = planetRadius planet
       centre = (0,-radius)
   in centre `subV` pos
+
+altitudeAt :: Planet -> Position -> Double
+altitudeAt planet pos =
+  let r = magV (toCentre planet pos)
+  in r - planetRadius planet
 
 --------------------
 -- Type aliases
@@ -149,3 +174,30 @@ rotMatrix angle = ((cos angle,sin angle),(-sin angle,cos angle))
 
 normaliseV :: Vector -> Vector
 normaliseV v = (1 / magV v) `mulSV` v
+
+dotV :: Vector -> Vector -> Double
+dotV (x1,y1) (x2,y2) = x1*x2 + y1*y2
+
+angleV :: Vector -> Vector -> Double
+angleV v1 v2 = acos (v1 `dotV` v2 / (magV v1 * magV v2))
+
+-- | Unit vector corresponding to the x axis.
+xAxis :: Vector
+xAxis = (1,0)
+
+-- | Unit vector corresponding to the y axis.
+yAxis :: Vector
+yAxis = (0,1)
+
+-- | Unit vector corresponding to the local y axis.
+localYAxis :: Planet -> Position -> Vector
+localYAxis planet pos = (negV . normaliseV) (toCentre planet pos)
+
+localXAxis :: Planet -> Position -> Vector
+localXAxis planet pos =
+  let y = localYAxis planet pos
+  in mulMatrixVector (rotMatrix (pi / 2)) y
+
+-- | Projection of a vector v onto vector u (u comes first)
+projV :: Vector -> Vector -> Vector
+projV u v = ((u `dotV` v) / (u `dotV` u)) `mulSV` u

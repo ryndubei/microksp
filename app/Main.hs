@@ -18,8 +18,9 @@ window = InWindow "MicroKSP" (round windowWidth, round windowHeight) (0,0)
 
 initialConditions :: Vessel
 initialConditions = Vessel
-  { dragCoefficientArea = 4
+  { dragCoefficientArea = 10
   , engineForce = 1000000
+  , engineForceRatioASL = 0.80
   , exhaustVelocity = 2500
   , startingMass = 80000
   , launchAltitude = 75.684
@@ -34,7 +35,7 @@ initialConditions = Vessel
 main :: IO ()
 main = do
   drawFlight <- getDrawFlight
-  play window background 30 initialConditions drawFlight handleKeys update
+  play window background 10 initialConditions drawFlight handleKeys update
 
 getDrawFlight :: IO (Vessel -> Picture)
 getDrawFlight = do
