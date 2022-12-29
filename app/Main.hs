@@ -47,7 +47,7 @@ getDrawFlight = do
           flightData = flyFromStart vessel atmosphereFunction
       in plot atmosphereTable vessel flightData
     planets = [toEnum 0 ..]
-    -- | If the density table could not be obtained, use the default table ([(0,0)])
+    -- If the density table could not be obtained, use the default table ([(0,0)])
     perhapsDensityTable planet = 
       catch (densityTable planet) 
       (\e -> 

@@ -41,7 +41,7 @@ velocityDerivative vessel v pos t d =
     gVector = (-g) `mulSV` localYAxis planet pos
     currentMass = m0 - (thrust / vEx) * t
     thrustVector = thrust `mulSV` normaliseV v
-    -- Performance optimization: if out of atmosphere, air resistance is 0.
+    -- (untested) performance optimization: if out of atmosphere, air resistance is 0.
     airResistanceVector = if outOfAtmosphere
       then (0,0)
       else (-0.5 * cDA * d * magV v) `mulSV` v
