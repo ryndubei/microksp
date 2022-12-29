@@ -8,7 +8,7 @@ import Graphics.Gloss.Geometry.Angle (degToRad)
 handleKeys :: Event -> Vessel -> Vessel
 handleKeys (EventKey (Char 'z') Down _ _) vessel =
   if imageScale vessel <= 1
-    then vessel
+    then vessel 
     else vessel { imageScale = imageScale vessel `div` 2}
 handleKeys (EventKey (Char 'x') Down _ _) vessel = vessel { imageScale = imageScale vessel * 2}
 handleKeys (EventKey (Char 'p') Down _ _) vessel = 
@@ -46,20 +46,20 @@ handleMove vessel = S.foldr moveKeys vessel (keys vessel)
         KeyUp -> vessel' { gravityKickSpeed = gravityKickSpeed vessel' + 0.5 }
         KeyDown -> if gravityKickSpeed vessel' - 0.5 >= 0
           then vessel' { gravityKickSpeed = gravityKickSpeed vessel' - 0.5}
-          else vessel'
+          else vessel' { gravityKickSpeed = 0}
         KeyShiftL -> vessel' { engineForce = 1.01 * engineForce vessel' }
         -- prevent engine from being weaker than 1g at 0m
         KeyCtrlL -> if 0.99 * engineForce vessel' >= gFieldStrength (currentPlanet vessel') 0 * startingMass vessel'
           then vessel' { engineForce = 0.99 * engineForce vessel' }
-          else vessel'
+          else vessel' { engineForce = gFieldStrength (currentPlanet vessel') 0 * startingMass vessel'}
         -- prevent gravity kick from being lower than 0 degrees (i.e always right)
         KeyLeft -> if gravityKickAngle vessel' - drd 0.1 >= 0
           then vessel' { gravityKickAngle = gravityKickAngle vessel' - drd 0.1 }
-          else vessel'
+          else vessel' { gravityKickAngle = 0}
         -- prevent gravity kick from being higher than 90 degrees (i.e always above horizon)
         KeyRight -> if gravityKickAngle vessel' + drd 0.1 <= drd 90
           then vessel' { gravityKickAngle = gravityKickAngle vessel' + drd 0.1 }
-          else vessel'
+          else vessel' { gravityKickAngle = drd 90}
         _ -> vessel'
     moveKeys _ vessel' = vessel'
     drd = realToFrac . degToRad
