@@ -11,7 +11,8 @@ import Lib
   , Vector
   , burnTime
   , gFieldStrength, mulMatrixVector, rotMatrix, magV, mulSV, addV
-  , toCentre, Planet, Position, negV, normaliseV, planetRadius, endMass )
+  , toCentre, Planet, Position, negV, normaliseV, planetRadius, endMass
+  , atmosphereHeight, magVSquared )
 
 -- | Unit vector corresponding to the x axis.
 xAxis :: Vector
@@ -36,10 +37,14 @@ constKSPPhysicsTick = 0.02
 velocityDerivative :: Vessel -> Velocity -> Position -> Time -> Density -> Vector
 velocityDerivative vessel v pos t d =
   let
+    outOfAtmosphere = magVSquared (toCentre planet pos) >= (atmosphereHeight planet + planetRadius planet)^2
     gVector = (-g) `mulSV` localYAxis planet pos
     currentMass = m0 - (thrust / vEx) * t
     thrustVector = thrust `mulSV` normaliseV v
-    airResistanceVector = (-0.5 * cDA * d * magV v) `mulSV` v
+    -- Performance optimization: if out of atmosphere, air resistance is 0.
+    airResistanceVector = if outOfAtmosphere
+      then (0,0)
+      else (-0.5 * cDA * d * magV v) `mulSV` v
   in
     if v == (0,0)
       then gVector `addV` ((1 / currentMass) `mulSV` (thrust `mulSV` localYAxis planet pos))

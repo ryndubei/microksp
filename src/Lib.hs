@@ -125,6 +125,9 @@ mulSV s (x,y) = (s*x,s*y)
 magV :: Vector -> Double
 magV (x,y) = sqrt (x*x + y*y)
 
+magVSquared :: Vector -> Double
+magVSquared (x,y) = (x*x + y*y)
+
 mulMatrixVector :: Matrix2x2 -> Vector -> Vector
 mulMatrixVector (c1,c2) (a,b) = mulSV a c1 `addV` mulSV b c2
 
