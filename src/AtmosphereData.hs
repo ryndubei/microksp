@@ -47,7 +47,7 @@ tableToFunction table x
     let 
       i2 = fromJust $ findIndex (>x) (map fst table')
       i1 = i2 - 1
-    in lineFunction (table'!!1) (table'!!2) x
+    in lineFunction (table'!!i1) (table'!!i2) x
   where
     table' = nubBy (\a b -> fst a == fst b) $ sortOn fst table
 
