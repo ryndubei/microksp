@@ -5,11 +5,10 @@ module Plot
   , plot ) where
 
 import Graphics.Gloss
-import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density, burnTime, planetRadius, Position)
-import Data.Bifunctor (bimap, Bifunctor (first))
+import Lib (Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density, burnTime, planetRadius, Position, twr)
+import Data.Bifunctor (bimap)
 import Data.List (nubBy, sortOn)
 import Graphics.Gloss.Geometry.Angle (radToDeg)
-import Data.Maybe (maybeToList)
 
 background :: Color
 background = black
@@ -62,7 +61,7 @@ canvas table vessel = pictures
 
 infoText :: Vessel -> Picture
 infoText vessel = 
-  scaleFinal (4 / realToFrac (imageScale vessel)) 
+  scaleFinal (5 / realToFrac (imageScale vessel)) 
   . translate (-windowWidth) (2*textSpacing-windowHeight) 
   . color textColor 
   . pictures 
@@ -76,11 +75,12 @@ infoText vessel =
           thrustText = text $ "Engine thrust: " ++ (show . round) (engineForce vessel) ++ "N"
           exhaustText = text $ "Engine exhaust velocity: " ++ (show . round) (exhaustVelocity vessel) ++ "m/s"
           massText = text $ "Vessel starting mass: " ++ (show . round) (startingMass vessel) ++ "kg"
+          twrText = text $ "Thrust-to-weight ratio at sea level: " ++ (show . (/10) . realToFrac .  round . (*10)) (twr vessel)
           deltaVText = text $ "Vessel delta-V: " ++ (show . round) (deltaV vessel) ++ "m/s"
           launchAltText = text $ "Vessel launch altitude: " ++ (show . round) (launchAltitude vessel) ++ "m"
           dragText = text $ "Vessel drag coefficient*area: " ++ (show . (/100) . realToFrac . round . (*100)) (dragCoefficientArea vessel) ++ "m^2"
-      in [planetText,timeText,speedText,angleText,thrustText, exhaustText, massText, deltaVText, launchAltText,dragText]
-    textSpacing = 100
+      in [planetText,timeText,speedText,angleText,thrustText,exhaustText,massText,twrText,deltaVText,launchAltText,dragText]
+    textSpacing = 130
     orderTexts = zipWith (translate 0) (map (* (-textSpacing)) [0..])
 
 spaceMarker :: Planet -> Picture

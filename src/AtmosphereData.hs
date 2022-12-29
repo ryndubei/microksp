@@ -9,7 +9,7 @@
 
 module AtmosphereData (densityFunction, densityTable, tableToFunction, defaultDensityTable) where
 
-import Lib ( Planet(..), Altitude, Temperature, Pressure, Density )
+import Lib ( Planet(..), Altitude, Temperature, Pressure, Density, molarMass )
 import Data.Char (toLower)
 import Data.List (sortOn, nubBy, findIndex)
 import System.Directory (XdgDirectory(XdgData), getXdgDirectory)
@@ -90,17 +90,6 @@ atmosphericTemperature :: Planet -> Pressure -> Density -> Temperature
 atmosphericTemperature planet p d = p / (rSpecific * d)
   where
     rSpecific = constGas / molarMass planet
-
--- | Return the molar mass of dry air at a particular planet, in kg/mole.
-molarMass :: Planet -> Double
--- TODO: add more data
-molarMass planet =
-  case planet of
-    Kerbin -> 0.0289644
-    Duna -> undefined
-    Eve -> undefined
-    Laythe -> undefined
-    Jool -> undefined
 
 -- | Given a column containing values for altitude, temperature and pressure,
 -- extract their values into a tuple as Doubles.

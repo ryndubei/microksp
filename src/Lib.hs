@@ -42,6 +42,9 @@ burnTime vessel =
     dm = startingMass vessel - endMass vessel
   in dm / dmdt
 
+twr :: Vessel -> Double
+twr vessel = engineForce vessel / (gFieldStrength (currentPlanet vessel) 0 * startingMass vessel)
+
 constStandardGravity :: Double
 constStandardGravity = 9.80665
 
@@ -74,6 +77,16 @@ atmosphereHeight planet =
     Eve -> 90000.0
     Laythe -> 50000.0
     Jool -> 200000.0
+
+-- | Return the molar mass of dry air at a particular planet, in kg/mole.
+molarMass :: Planet -> Double
+molarMass planet =
+  case planet of
+    Kerbin -> 0.0289644
+    Duna -> 0.042
+    Eve -> 0.043
+    Laythe -> 0.0289644
+    Jool -> 0.0022
 
 -- | Given a planet and an altitude above sea level, give the gravitational
 -- field strength at that altitude.
@@ -126,7 +139,7 @@ magV :: Vector -> Double
 magV (x,y) = sqrt (x*x + y*y)
 
 magVSquared :: Vector -> Double
-magVSquared (x,y) = (x*x + y*y)
+magVSquared (x,y) = x*x + y*y
 
 mulMatrixVector :: Matrix2x2 -> Vector -> Vector
 mulMatrixVector (c1,c2) (a,b) = mulSV a c1 `addV` mulSV b c2
