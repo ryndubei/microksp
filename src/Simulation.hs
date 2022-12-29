@@ -56,14 +56,14 @@ velocityStep vessel v pos t d =
 -- return the list of tuples (Time,Velocity,Altitude) until the vessel
 -- collides with the ground, or runs out of fuel, whichever comes first.
 -- If the outOfFuel Bool is set as True, then the function will not check for not being out of fuel,
--- but will limit itself to only 20000 further ticks (at 0.02 seconds per tick this is 400 seconds)
+-- but will limit itself to only 40000 further ticks (at 0.02 seconds per tick this is 800 seconds)
 fly :: Bool -> (Time,Velocity,Position) -> Vessel -> (Altitude -> Density) -> [(Time,Velocity,Position)]
 fly outOfFuel initialConditions vessel f =
   let
     hasFuel (t,_,_) = t + constKSPPhysicsTick <= burnTime vessel
     aboveGround (_,_,pos) = magV (toCentre planet pos) >= planetRadius planet
     flight = takeWhile (\x -> (hasFuel x || outOfFuel) && aboveGround x) (iterate flyStep initialConditions)
-  in (if outOfFuel then take 20000 else id) flight
+  in (if outOfFuel then take 40000 else id) flight
   where
     planet = currentPlanet vessel
     flyStep :: (Time,Velocity,Position) -> (Time,Velocity,Position)
