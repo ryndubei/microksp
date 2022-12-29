@@ -9,10 +9,9 @@ import Lib
   , Density
   , Altitude
   , Vector
-  , Matrix2x2, burnTime
-  , atmosphereHeight
+  , burnTime
   , gFieldStrength, mulMatrixVector, rotMatrix, magV, mulSV, addV
-  , toCentre, Planet, Position, negV, normaliseV, planetRadius, subV )
+  , toCentre, Planet, Position, negV, normaliseV, planetRadius, endMass )
 
 -- | Unit vector corresponding to the x axis.
 xAxis :: Vector
@@ -62,14 +61,16 @@ velocityStep vessel v pos t d =
 
 -- | Given a Vessel, initial conditions, and an Altitude -> Density function, 
 -- return the list of tuples (Time,Velocity,Altitude) until the vessel
--- collides with the ground, or runs out of fuel, 
---- whichever comes first.
-fly :: (Time,Velocity,Position) -> Vessel -> (Altitude -> Density) -> [(Time,Velocity,Position)]
-fly initialConditions vessel f =
+-- collides with the ground, or runs out of fuel, whichever comes first.
+-- If the outOfFuel Bool is set as True, then the function will not check for not being out of fuel,
+-- but will limit itself to only 20000 further ticks (at 0.02 seconds per tick this is 400 seconds)
+fly :: Bool -> (Time,Velocity,Position) -> Vessel -> (Altitude -> Density) -> [(Time,Velocity,Position)]
+fly outOfFuel initialConditions vessel f =
   let
     hasFuel (t,_,_) = t + constKSPPhysicsTick <= burnTime vessel
     aboveGround (_,_,pos) = magV (toCentre planet pos) >= planetRadius planet
-  in takeWhile (\x -> hasFuel x && aboveGround x) (iterate flyStep initialConditions)
+    flight = takeWhile (\x -> (hasFuel x || outOfFuel) && aboveGround x) (iterate flyStep initialConditions)
+  in (if outOfFuel then take 20000 else id) flight
   where
     planet = currentPlanet vessel
     flyStep :: (Time,Velocity,Position) -> (Time,Velocity,Position)
@@ -82,13 +83,15 @@ fly initialConditions vessel f =
         vavg = 0.5 `mulSV` (v' `addV` v)
         dpos = constKSPPhysicsTick `mulSV` vavg
 
+vesselSpent :: Vessel -> Vessel
+vesselSpent vessel = vessel { startingMass = endMass vessel, engineForce = 0, deltaV = 0}
 
 -- | Given the parameters, return the list of tuples (Time,Velocity,Position)
 -- until the vessel reaches space, reaches apoapsis, or runs out of fuel,
 -- whichever comes first.
 -- Includes a gravity kick and does not require initial conditions
 -- (as they are taken from vessel data).
-flyFromStart :: Vessel -> (Altitude -> Density) -> [(Time,Velocity,Position)]
+flyFromStart :: Vessel -> (Altitude -> Density) -> [[(Time,Velocity,Position)]]
 flyFromStart vessel f =
   let
     launchBurn =
@@ -96,12 +99,14 @@ flyFromStart vessel f =
       (\(time,vel,position) -> magV vel
         < gravityKickSpeed vessel
         + constKSPPhysicsTick * currentAcceleration time position)
-      (fly initialConditions vessel f)
+      (fly False initialConditions vessel f)
     (t,v,pos) = last launchBurn
     v' = mulMatrixVector (rotMatrix (-gravityKickAngle vessel)) v
-    gravityTurn = fly (t,v',pos) vessel f
-  in init launchBurn ++ gravityTurn
+    gravityTurn = fly False (t,v',pos) vessel f
+    freeFall = fly True (last gravityTurn) vessel' f
+  in (init launchBurn ++ gravityTurn) : [freeFall]
   where
+    vessel' = vesselSpent vessel
     planet = currentPlanet vessel
     initialConditions = (0,(0,0),(0,launchAltitude vessel))
     m0 = startingMass vessel

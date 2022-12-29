@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib (Vessel(..), Planet(..),Altitude,Density)
+import Lib (Vessel(..), Planet(..))
 import Plot (windowWidth, windowHeight, background, plot)
 import Simulation (flyFromStart)
 import AtmosphereData (densityTable, defaultDensityTable, tableToFunction)
@@ -9,7 +9,7 @@ import qualified Data.Set as S
 
 import Graphics.Gloss
 import Graphics.Gloss.Geometry.Angle (degToRad)
-import Control.Exception (try, catch, IOException)
+import Control.Exception (catch, IOException)
 import Data.Maybe (fromJust)
 import System.IO (stderr, hPutStrLn)
 
@@ -18,13 +18,13 @@ window = InWindow "MicroKSP" (round windowWidth, round windowHeight) (0,0)
 
 initialConditions :: Vessel
 initialConditions = Vessel
-  { dragCoefficientArea = 5
+  { dragCoefficientArea = 4
   , engineForce = 1000000
   , exhaustVelocity = 2500
   , startingMass = 80000
   , launchAltitude = 75.684
   , currentPlanet = Kerbin
-  , gravityKickAngle = realToFrac $ degToRad 10
+  , gravityKickAngle = realToFrac $ degToRad 5
   , gravityKickSpeed = 100
   , deltaV = 3400
   , keys = S.empty
@@ -34,7 +34,7 @@ initialConditions = Vessel
 main :: IO ()
 main = do
   drawFlight <- getDrawFlight
-  play window background 60 initialConditions drawFlight handleKeys update
+  play window background 30 initialConditions drawFlight handleKeys update
 
 getDrawFlight :: IO (Vessel -> Picture)
 getDrawFlight = do
