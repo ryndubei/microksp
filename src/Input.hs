@@ -23,15 +23,19 @@ handleKeys (EventKey k Down _ _) vessel =
 handleKeys (EventKey k Up _ _) vessel = vessel {keys = S.delete k (keys vessel)}
 handleKeys _ vessel = vessel
 
--- | lshift/lctrl : increase/decrease thrust, left/right : change gravity kick angle,
+-- | lshift/lctrl : increase/decrease thrust, 
+-- left/right : change gravity kick angle,
 -- up/down : increase/decrease gravity turn start velocity
+-- w/s : increase/decrease delta-V,
+-- a/d : increase/decrease drag coefficient * area
 isMovementKey :: Key -> Bool
 isMovementKey = flip S.member movementKeys
   where
     movementKeys :: S.Set Key
     movementKeys =
       S.fromList
-      [SpecialKey KeyUp, SpecialKey KeyDown
+      [ Char 'a', Char 'd', Char 'w', Char 's'
+      , SpecialKey KeyUp, SpecialKey KeyDown
       , SpecialKey KeyRight, SpecialKey KeyLeft
       , SpecialKey KeyShiftL, SpecialKey KeyCtrlL]
 
@@ -42,11 +46,22 @@ handleMove :: Vessel -> Vessel
 handleMove vessel = S.foldr moveKeys vessel (keys vessel)
   where
     moveKeys :: Key -> Vessel -> Vessel
+    moveKeys (Char c) vessel' =
+      case c of
+        'w' -> vessel' { deltaV = deltaV vessel' + 50 }
+        's' -> if deltaV vessel' >= 100
+          then vessel' { deltaV = deltaV vessel' - 50 }
+          else vessel' { deltaV = 50 }
+        'd' -> vessel' { dragCoefficientArea = dragCoefficientArea vessel' + 0.1 }
+        'a' -> if dragCoefficientArea vessel' >= 0.1
+          then vessel' { dragCoefficientArea = dragCoefficientArea vessel' - 0.1 }
+          else vessel' { dragCoefficientArea = 0 }
+        _ -> vessel'
     moveKeys (SpecialKey k) vessel' =
       case k of
-        KeyUp -> vessel' { gravityKickSpeed = gravityKickSpeed vessel' + 0.5 }
-        KeyDown -> if gravityKickSpeed vessel' - 0.5 >= 0
-          then vessel' { gravityKickSpeed = gravityKickSpeed vessel' - 0.5}
+        KeyUp -> vessel' { gravityKickSpeed = gravityKickSpeed vessel' + 2 }
+        KeyDown -> if gravityKickSpeed vessel' - 2 >= 0
+          then vessel' { gravityKickSpeed = gravityKickSpeed vessel' - 2}
           else vessel' { gravityKickSpeed = 0}
         KeyShiftL -> vessel' { engineForce = 1.01 * engineForce vessel' }
         -- prevent engine from being weaker than 1g at 0m

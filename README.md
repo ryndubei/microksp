@@ -19,16 +19,19 @@ Then use `stack run` to run the program.
 Setup
 -----
 
-$XDG_DATA_HOME/microksp (.local/share/microksp on Linux) should contain atmosphere data files <planet (lowercase)>_atmosphere.txt for air resistance on the planet to be taken into account. An example file already exists for Kerbin: see the atmosphere directory. In the file, each line should contain "<altitude>m <temperature>K <pressure>P". If there is no atmosphere file for a planet, the planet will have no atmosphere.
+$XDG_DATA_HOME/microksp (.local/share/microksp on Linux) should contain atmosphere data files <planet (lowercase)>_atmosphere.txt for air resistance on the planet to be taken into account. See the atmosphere directory.
 
 Controls
 --------
 
 - up/down : increase/decrease gravity kick velocity
 - right/left : increase/decrease gravity kick angle
-- shift/ctrl : increase/decrease engine thrust
+- lshift/lctrl : increase/decrease engine thrust
 - p : cycle through planets
 - x/z : scale image size up/down
+- r : switch reference frame between Surface and Orbit
+- w/s : increase/decrease vessel delta-V
+- d/a : increase/decrease vessel cross-section area or drag coefficient
 
 License
 -------
