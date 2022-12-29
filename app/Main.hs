@@ -18,16 +18,16 @@ window = InWindow "MicroKSP" (round windowWidth, round windowHeight) (0,0)
 
 initialConditions :: Vessel
 initialConditions = Vessel
-  { dragCoefficientArea = 10
-  , engineForce = 1000000
-  , engineForceRatioASL = 0.80
-  , exhaustVelocity = 2500
-  , startingMass = 80000
+  { dragCoefficientArea = 10.0
+  , engineForce = 988000
+  , engineForceRatioASL = 0.78 -- does nothing for now
+  , exhaustVelocity = 2796
+  , startingMass = 53475
   , launchAltitude = 75.684
   , currentPlanet = Kerbin
-  , gravityKickAngle = realToFrac $ degToRad 5
-  , gravityKickSpeed = 100
-  , deltaV = 3400
+  , gravityKickAngle = realToFrac $ degToRad 15.0
+  , gravityKickSpeed = 150
+  , deltaV = 1155
   , keys = S.empty
   , imageScale = 1
   , orbitRefFrame = False
