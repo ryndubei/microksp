@@ -55,20 +55,45 @@ groundColor planet =
     Jool -> dark green
 
 canvas :: [(Altitude,Density)] -> Vessel -> Picture
-canvas table vessel = groundSky table (currentPlanet vessel)
+canvas table vessel = pictures 
+  [groundSky table (currentPlanet vessel)
+  , infoText vessel
+  , spaceMarker (currentPlanet vessel)]
 
 infoText :: Vessel -> Picture
-infoText vessel = undefined
+infoText vessel = 
+  scaleFinal (4 / realToFrac (imageScale vessel)) 
+  . translate (-windowWidth) (2*textSpacing-windowHeight) 
+  . color textColor 
+  . pictures 
+  $ orderTexts texts
   where
     texts =
-      let timeText = text $ "Burn time :" ++ (show . round) (burnTime vessel) ++ "s"
+      let planetText = text $ "Current planet: " ++ show (currentPlanet vessel)
+          timeText = text $ "Burn time: " ++ (show . round) (burnTime vessel) ++ "s"
           speedText = text $ "Gravity kick speed: " ++ (show . round) (gravityKickSpeed vessel) ++ "m/s"
-          angleText = text $ "Gravity kick angle: " ++ (show . round . radToDeg . realToFrac) (gravityKickAngle vessel)
+          angleText = text $ "Gravity kick angle: " ++ (show . (/10) . realToFrac . round . (*10) . radToDeg . realToFrac) (gravityKickAngle vessel)
           thrustText = text $ "Engine thrust: " ++ (show . round) (engineForce vessel) ++ "N"
-      in [timeText,speedText,angleText, thrustText]
+          exhaustText = text $ "Engine exhaust velocity: " ++ (show . round) (exhaustVelocity vessel) ++ "m/s"
+          massText = text $ "Vessel starting mass: " ++ (show . round) (startingMass vessel) ++ "kg"
+          deltaVText = text $ "Vessel delta-V: " ++ (show . round) (deltaV vessel) ++ "m/s"
+          launchAltText = text $ "Vessel launch altitude: " ++ (show . round) (launchAltitude vessel) ++ "m"
+          dragText = text $ "Vessel drag coefficient*area: " ++ (show . (/100) . realToFrac . round . (*100)) (dragCoefficientArea vessel) ++ "m^2"
+      in [planetText,timeText,speedText,angleText,thrustText, exhaustText, massText, deltaVText, launchAltText,dragText]
+    textSpacing = 100
+    orderTexts = zipWith (translate 0) (map (* (-textSpacing)) [0..])
+
+spaceMarker :: Planet -> Picture
+spaceMarker planet = 
+  translate x y 
+  . color yellow 
+  $ circle 
+  ( (realToFrac . (*windowScale planet) ) 
+  (planetRadius planet + atmosphereHeight planet))
+  where (x,y) = planetCentre planet
 
 textColor :: Color
-textColor = black
+textColor = white
 
 groundSky :: [(Altitude,Density)] -> Planet -> Picture
 groundSky atmosphereTable planet =
@@ -95,9 +120,8 @@ plot :: [(Altitude,Density)] -> Vessel -> [[(Time,Velocity,Position)]] -> Pictur
 plot atmosphereTable vessel flightPath = 
   let stages = map plotStage (init flightPath)
       freeFall = plotStage (last flightPath)
-  in (scaleFinal . pictures) $ canvas atmosphereTable vessel : zipWith color stageColors stages ++ [color outOfFuelColor freeFall]
+  in (scaleFinal (realToFrac (imageScale vessel)) . pictures) $ canvas atmosphereTable vessel : zipWith color stageColors stages ++ [color outOfFuelColor freeFall]
   where
-    scaleFinal = scale (1 / realToFrac (imageScale vessel)) (1 / realToFrac (imageScale vessel))
     planet = currentPlanet vessel
     plotStage stagePath =
       let points = map (\(_,_,pos) -> pos) stagePath
@@ -105,6 +129,9 @@ plot atmosphereTable vessel flightPath =
           pathWindow = line $ map (bimap realToFrac realToFrac) pointsWindowScale
       in translate launchPoint 0 pathWindow
         --scaleFinal $ pictures [canvas atmosphereTable vessel,color (head stageColors) $ translate launchPoint 0 pathWindow]
+
+scaleFinal :: Float -> (Picture -> Picture)
+scaleFinal n = scale (1 / n) (1 / n)
 
 drawAtmosphere :: [(Altitude,Density)] -> Planet -> Picture
 drawAtmosphere atmosphereTable planet =
