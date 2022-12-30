@@ -6,6 +6,7 @@ import qualified Data.Set as S
 import Graphics.Gloss.Geometry.Angle (degToRad)
 
 handleKeys :: Event -> Vessel -> Vessel
+handleKeys (EventKey (Char 'r') Down _ _) vessel = vessel { orbitRefFrame = not (orbitRefFrame vessel)}
 handleKeys (EventKey (Char 'z') Down _ _) vessel =
   if imageScale vessel <= 1
     then vessel 

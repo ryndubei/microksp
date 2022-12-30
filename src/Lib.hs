@@ -21,6 +21,7 @@ data Vessel = Vessel
   , deltaV :: Double -- ^ The maximum delta-V of the rocket (m/s)
   , keys :: S.Set Key -- ^ Keys defining simulation parameters to be changed on next update
   , imageScale :: Int -- ^ factor of image scale down from the default
+  , orbitRefFrame :: Bool -- ^ Either surface or orbit reference frame for plotting
   }
 
 -- | Datatype for both Vessel and its changing variables (time, velocity and
@@ -103,6 +104,53 @@ molarMass planet =
     Laythe -> 0.0289644
     Jool -> 0.0022
 
+-- | Returns the rotation period of a planet in seconds.
+rotationPeriod :: Planet -> Double
+rotationPeriod planet =
+  case planet of
+    Kerbin -> 21549.425
+    Duna -> 65517.859
+    Eve -> 80500.0
+    Laythe -> 52980.879
+    Jool -> 36000.0
+
+-- | Returns the magnitude of the velocity of the planet's rotation in metres 
+-- at the given altitude.
+rotationVelocity :: Planet -> Altitude -> Double
+rotationVelocity planet h =
+  let angularVelocity = (2*pi) / rotationPeriod planet
+      r = planetRadius planet + h
+  in r * angularVelocity
+
+-- | Change from orbit to surface reference frame for velocity
+orbitToSurface :: Planet -> Position -> Velocity -> Velocity
+orbitToSurface planet pos v =
+  let h = altitudeAt planet pos
+      vRotMag = rotationVelocity planet h
+      rotVector = vRotMag `mulSV` localXAxis planet pos
+  in v `subV` rotVector
+
+-- | Change from surface to orbit reference frame for velocity
+surfaceToOrbit :: Planet -> Position -> Velocity -> Velocity
+surfaceToOrbit planet pos v =
+  let h = altitudeAt planet pos
+      vRotMag = rotationVelocity planet h
+      rotVector = vRotMag `mulSV` localXAxis planet pos
+  in v `addV` rotVector
+
+-- | Return the angle that the planet has rotated by at the specified time.
+hasRotatedBy :: Planet -> Time -> Double
+hasRotatedBy planet t =
+  let angularVelocity = (2*pi) / rotationPeriod planet
+  in angularVelocity * t
+
+-- | Rotate a vector by the given angle in radians around the given position,
+-- counter-clockwise.
+rotateAroundBy :: Position -> Vector -> Double -> Vector
+rotateAroundBy pos v angle =
+  let v' = v `subV` pos
+  in mulMatrixVector (rotMatrix angle) v' `addV` pos
+
 -- | Given a planet and an altitude above sea level, give the gravitational
 -- field strength at that altitude.
 gFieldStrength :: Planet -> Altitude -> Double
@@ -169,6 +217,7 @@ magVSquared (x,y) = x*x + y*y
 mulMatrixVector :: Matrix2x2 -> Vector -> Vector
 mulMatrixVector (c1,c2) (a,b) = mulSV a c1 `addV` mulSV b c2
 
+-- | Counterclockwise rotation matrix for a given angle
 rotMatrix :: Double -> Matrix2x2
 rotMatrix angle = ((cos angle,sin angle),(-sin angle,cos angle))
 
@@ -196,7 +245,7 @@ localYAxis planet pos = (negV . normaliseV) (toCentre planet pos)
 localXAxis :: Planet -> Position -> Vector
 localXAxis planet pos =
   let y = localYAxis planet pos
-  in mulMatrixVector (rotMatrix (pi / 2)) y
+  in mulMatrixVector (rotMatrix (-pi / 2)) y
 
 -- | Projection of a vector v onto vector u (u comes first)
 projV :: Vector -> Vector -> Vector

@@ -30,6 +30,7 @@ initialConditions = Vessel
   , deltaV = 3400
   , keys = S.empty
   , imageScale = 1
+  , orbitRefFrame = False
   }
 
 main :: IO ()

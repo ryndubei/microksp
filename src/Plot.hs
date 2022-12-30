@@ -23,7 +23,7 @@ import Lib
   , localXAxis
   , projV
   , altitudeAt
-  , orbitalVel, endMass)
+  , orbitalVel, endMass, hasRotatedBy, orbitToSurface, rotateAroundBy)
 import Data.Bifunctor (bimap)
 import Data.List (nubBy, sortOn, find)
 import Graphics.Gloss.Geometry.Angle (radToDeg)
@@ -79,7 +79,7 @@ canvas table vessel = pictures
 
 infoText :: Vessel -> Picture
 infoText vessel =
-  makeTextLines (-windowWidth,3*textSpacing-windowHeight) 5 textSpacing vessel texts
+  makeTextLines (-windowWidth,3.5*textSpacing-windowHeight) 5 textSpacing vessel texts
   where
     texts =
       let planetText = "Current planet: " ++ show (currentPlanet vessel)
@@ -94,7 +94,8 @@ infoText vessel =
           deltaVText = "Vessel delta-V: " ++ (show . round) (deltaV vessel) ++ "m/s"
           launchAltText = "Vessel launch altitude: " ++ (show . round) (launchAltitude vessel) ++ "m"
           dragText = "Vessel drag coefficient*area: " ++ (show . (/100) . realToFrac . round . (*100)) (dragCoefficientArea vessel) ++ "m^2"
-      in [planetText,timeText,speedText,angleText,thrustText,exhaustText,massText,twrText,endMassText,deltaVText,launchAltText,dragText]
+          refFrameText = "Current reference frame: " ++ (if orbitRefFrame vessel then "Orbit" else "Surface")
+      in [planetText,timeText,speedText,angleText,thrustText,exhaustText,massText,twrText,endMassText,deltaVText,launchAltText,dragText, refFrameText]
     textSpacing = 130
 
 -- | Turn a list of Strings into lines of text as a picture, translated, scaled
@@ -156,11 +157,11 @@ plot atmosphereTable vessel flightPath =
   where
     planet = currentPlanet vessel
     plotStage stagePath =
-      let points = map (\(_,_,pos) -> pos) stagePath
+      let stagePath' = if orbitRefFrame vessel then stagePath else map (compensateForRotation planet) stagePath
+          points = map (\(_,_,pos) -> pos) stagePath'
           pointsWindowScale = map (bimap (*windowScale planet) (*windowScale planet)) points
           pathWindow = line $ map (bimap realToFrac realToFrac) pointsWindowScale
       in translate launchPoint 0 pathWindow
-        --scaleFinal $ pictures [canvas atmosphereTable vessel,color (head stageColors) $ translate launchPoint 0 pathWindow]
 
 scaleFinal :: Float -> (Picture -> Picture)
 scaleFinal n = scale (1 / n) (1 / n)
@@ -228,3 +229,14 @@ tangentialVel :: Planet -> Velocity -> Position -> Double
 tangentialVel planet v pos =
   let x = localXAxis planet pos
   in magV (projV x v)
+
+-- | Convert both flight velocity and position to surface reference frame based on the time
+-- from launch
+compensateForRotation :: Planet -> (Time,Velocity,Position) -> (Time,Velocity,Position)
+-- Assumes planet centre is at (0,-planetRadius planet)
+compensateForRotation planet (t,v,pos) = (t,v',pos')
+  where 
+    angularDisplacement = hasRotatedBy planet t
+    v' = orbitToSurface planet pos v
+    pos' = rotateAroundBy (0,-planetRadius planet) pos angularDisplacement
+    
