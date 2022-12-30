@@ -114,6 +114,21 @@ rotationPeriod planet =
     Laythe -> 52980.879
     Jool -> 36000.0
 
+-- | Returns the sea level temperature of a planet in Kelvin. Used for
+-- approximating engine efficiency at various altitudes. Might disagree with
+-- atmosphere config files if those have been changed. This method will be
+-- highly unreliable if the temperature varies wildly across altitudes with
+-- non-negligible air density.
+seaLevelTemperature :: Planet -> Temperature
+-- TODO: get rid of this absolutely awful solution at some point
+seaLevelTemperature planet =
+  case planet of
+    Kerbin -> 288.145
+    Duna -> 250.0
+    Eve -> 400.0
+    Laythe -> 295.0
+    Jool -> 200.0
+
 -- | Returns the magnitude of the velocity of the planet's rotation in metres 
 -- at the given altitude.
 rotationVelocity :: Planet -> Altitude -> Double
