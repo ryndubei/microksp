@@ -28,13 +28,16 @@ handleKeys _ vessel = vessel
 -- up/down : increase/decrease gravity turn start velocity
 -- w/s : increase/decrease delta-V,
 -- a/d : increase/decrease drag coefficient * area
+-- l/h : increase/decrease exhaust velocity
+-- k/j : increase/decrease starting mass
 isMovementKey :: Key -> Bool
 isMovementKey = flip S.member movementKeys
   where
     movementKeys :: S.Set Key
     movementKeys =
       S.fromList
-      [ Char 'a', Char 'd', Char 'w', Char 's'
+      [ Char 'l', Char 'h', Char 'k', Char 'j'
+      , Char 'a', Char 'd', Char 'w', Char 's'
       , SpecialKey KeyUp, SpecialKey KeyDown
       , SpecialKey KeyRight, SpecialKey KeyLeft
       , SpecialKey KeyShiftL, SpecialKey KeyCtrlL]
@@ -48,6 +51,14 @@ handleMove vessel = S.foldr moveKeys vessel (keys vessel)
     moveKeys :: Key -> Vessel -> Vessel
     moveKeys (Char c) vessel' =
       case c of
+        'l' -> vessel' { exhaustVelocity = exhaustVelocity vessel' + 50}
+        'h' -> if exhaustVelocity vessel' >= 100
+          then vessel' { exhaustVelocity = exhaustVelocity vessel' - 50}
+          else vessel' { exhaustVelocity = 50 }
+        'k' -> vessel' { startingMass = startingMass vessel' * 1.01}
+        'j' -> if 0.99 * startingMass vessel' >= 50
+          then vessel' { startingMass = 0.99 * startingMass vessel' }
+          else vessel' { startingMass = 50 }
         'w' -> vessel' { deltaV = deltaV vessel' + 50 }
         's' -> if deltaV vessel' >= 100
           then vessel' { deltaV = deltaV vessel' - 50 }
