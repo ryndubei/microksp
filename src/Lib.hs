@@ -54,6 +54,9 @@ constStandardGravity = 9.80665
 const1Atm :: Double
 const1Atm = 101325.0
 
+constGas :: Double
+constGas = 8.31446261815324
+
 engineForceAt :: Vessel -> (Pressure -> Double)
 engineForceAt vessel pres = engineForce vessel - dthrust
   where
@@ -128,6 +131,18 @@ seaLevelTemperature planet =
     Eve -> 400.0
     Laythe -> 295.0
     Jool -> 200.0
+
+-- | Find temperature when pressure is known
+atmosphericTemperature :: Planet -> Pressure -> Density -> Temperature
+atmosphericTemperature planet p d = p / (rSpecific * d)
+  where
+    rSpecific = constGas / molarMass planet
+
+-- | Find pressure when temperature is known
+atmosphericPressure :: Planet -> Temperature -> Density -> Pressure
+atmosphericPressure planet t d = t * rSpecific * d
+  where
+    rSpecific = constGas / molarMass planet
 
 -- | Returns the magnitude of the velocity of the planet's rotation in metres 
 -- at the given altitude.

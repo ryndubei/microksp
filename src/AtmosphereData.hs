@@ -7,16 +7,13 @@
 -- The altitude doesn't have to be in ascending order, or contain no duplicates
 -- (in case there is a duplicate, the first result is taken)
 
-module AtmosphereData (densityFunction, densityTable, tableToFunction, defaultDensityTable, atmosphericPressure) where
+module AtmosphereData (densityFunction, densityTable, tableToFunction, defaultDensityTable) where
 
-import Lib ( Planet(..), Altitude, Temperature, Pressure, Density, molarMass )
+import Lib ( Planet(..), Altitude, Temperature, Pressure, Density, molarMass, constGas )
 import Data.Char (toLower)
 import Data.List (sortOn, nubBy, findIndex)
 import System.Directory (XdgDirectory(XdgData), getXdgDirectory)
 import Data.Maybe ( fromJust, isJust )
-
-constGas :: Double
-constGas = 8.31446261815324
 
 -- | Path from XDG_DATA_HOME in which atmospheric data is stored.
 -- For Linux, the default XDG_DATA_HOME is ~/.local/share, while for
@@ -82,18 +79,6 @@ processDataLine planet str = (alt,atmosphericDensity planet temp pres)
 -- | Given a planet, return the density at the given temperature and pressure.
 atmosphericDensity :: Planet -> Temperature -> Pressure -> Density
 atmosphericDensity planet t p = p / (rSpecific * t)
-  where
-    rSpecific = constGas / molarMass planet
-
--- | Find temperature when pressure is known
-atmosphericTemperature :: Planet -> Pressure -> Density -> Temperature
-atmosphericTemperature planet p d = p / (rSpecific * d)
-  where
-    rSpecific = constGas / molarMass planet
-
--- | Find pressure when temperature is known
-atmosphericPressure :: Planet -> Temperature -> Density -> Pressure
-atmosphericPressure planet t d = t * rSpecific * d
   where
     rSpecific = constGas / molarMass planet
 
