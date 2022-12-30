@@ -103,8 +103,10 @@ flyFromStart vessel f =
         + constKSPPhysicsTick * currentAcceleration time position)
       (fly True False initialConditions vessel f)
     (t,v,pos) = last launchBurn
-    -- TODO: make gravityKickAngle consider surface vs orbital velocity and its implications
-    v' = mulMatrixVector (rotMatrix (-(gravityKickAngle vessel))) v
+    vSurfMag = magV (orbitToSurface planet pos v)
+    vSurfMagUp = vSurfMag `mulSV` localYAxis planet pos
+    v' = surfaceToOrbit planet pos 
+      $ mulMatrixVector (rotMatrix (-(gravityKickAngle vessel))) vSurfMagUp
     gravityTurn = fly False False (t,v',pos) vessel f
     freeFall = fly False True (last gravityTurn) vessel' f
   in (init launchBurn ++ gravityTurn) : [freeFall]
