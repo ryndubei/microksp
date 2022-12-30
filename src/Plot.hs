@@ -56,10 +56,10 @@ planetCentre planet =
 atmosphereColor :: Planet -> Color
 atmosphereColor planet =
   case planet of
-    Kerbin -> blue
+    Kerbin -> light blue
     Duna -> orange
     Eve -> magenta
-    Laythe -> blue
+    Laythe -> light blue
     Jool -> light green
 
 groundColor :: Planet -> Color
