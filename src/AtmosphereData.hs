@@ -7,7 +7,7 @@
 -- The altitude doesn't have to be in ascending order, or contain no duplicates
 -- (in case there is a duplicate, the first result is taken)
 
-module AtmosphereData (densityFunction, densityTable, tableToFunction, defaultDensityTable) where
+module AtmosphereData (densityFunction, densityTable, tableToFunction, defaultDensityTable, atmosphericPressure) where
 
 import Lib ( Planet(..), Altitude, Temperature, Pressure, Density, molarMass )
 import Data.Char (toLower)
@@ -85,9 +85,15 @@ atmosphericDensity planet t p = p / (rSpecific * t)
   where
     rSpecific = constGas / molarMass planet
 
--- | Used for manually finding temperature when pressure is known
+-- | Find temperature when pressure is known
 atmosphericTemperature :: Planet -> Pressure -> Density -> Temperature
 atmosphericTemperature planet p d = p / (rSpecific * d)
+  where
+    rSpecific = constGas / molarMass planet
+
+-- | Find pressure when temperature is known
+atmosphericPressure :: Planet -> Temperature -> Density -> Pressure
+atmosphericPressure planet t d = t * rSpecific * d
   where
     rSpecific = constGas / molarMass planet
 
