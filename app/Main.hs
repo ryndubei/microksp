@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib (Vessel(..), Planet(..))
+import Lib (Vessel(..), Planet(..), Stage(..))
 import Plot (windowWidth, windowHeight, background, plot)
 import Simulation (flyFromStart)
 import AtmosphereData (densityTable, defaultDensityTable, tableToFunction)
@@ -31,6 +31,7 @@ initialConditions = Vessel
   , keys = S.empty
   , imageScale = 1
   , orbitRefFrame = False
+  , followingStages = [Stage {stageThrust = 100000, stageMass = 10000, stageIsp = 350, stageDeltaV = 2000, stageDragArea = 5.0}]
   }
 
 main :: IO ()

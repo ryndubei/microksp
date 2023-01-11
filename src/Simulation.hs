@@ -1,6 +1,5 @@
--- NOTE: At the moment this module does not consider the curvature of the planet.
 
-module Simulation (fly, flyFromStart) where
+module Simulation (flyFromStart) where
 
 import Lib
   ( Vessel(..)
