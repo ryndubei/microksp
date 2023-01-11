@@ -1,4 +1,3 @@
-
 module Simulation (flyFromStart) where
 
 import Lib
@@ -11,7 +10,7 @@ import Lib
   , burnTime
   , gFieldStrength, mulMatrixVector, rotMatrix, magV, mulSV, addV
   , toCentre, Position, negV, normaliseV, planetRadius, endMass
-  , atmosphereHeight, magVSquared, localYAxis, orbitToSurface, surfaceToOrbit )
+  , atmosphereHeight, magVSquared, localYAxis, orbitToSurface, surfaceToOrbit, Planet )
 
 -- | Average length of a KSP physics tick in seconds.
 constKSPPhysicsTick :: Double
@@ -95,17 +94,10 @@ vesselSpent vessel = vessel { startingMass = endMass vessel, engineForce = 0, de
 flyFromStart :: Vessel -> (Altitude -> Density) -> [[(Time,Velocity,Position)]]
 flyFromStart vessel f =
   let
-    launchBurn = 
-      takeWhile
-      (\(time,vel,position) -> magV (orbitToSurface planet position vel)
-        < gravityKickSpeed vessel
-        + constKSPPhysicsTick * currentAcceleration time position)
+    launchBurn = takeWhile (isBelowSpeed planet (gravityKickSpeed vessel))
       (fly True False initialConditions vessel f)
     (t,v,pos) = last launchBurn
-    vSurfMag = magV (orbitToSurface planet pos v)
-    vSurfMagUp = vSurfMag `mulSV` localYAxis planet pos
-    v' = surfaceToOrbit planet pos 
-      $ mulMatrixVector (rotMatrix (-(gravityKickAngle vessel))) vSurfMagUp
+    v' = gravityKick planet pos v (gravityKickAngle vessel)
     gravityTurn = fly False False (t,v',pos) vessel f
     freeFall = fly False True (last gravityTurn) vessel' f
   in (init launchBurn ++ gravityTurn) : [freeFall]
@@ -115,10 +107,14 @@ flyFromStart vessel f =
     startpos = (0,launchAltitude vessel)
     startvel = surfaceToOrbit planet startpos (0,0)
     initialConditions = (0,startvel,startpos)
-    m0 = startingMass vessel
-    thrust = engineForce vessel
-    vEx = exhaustVelocity vessel
-    g = gFieldStrength planet
-    h pos = magV (toCentre planet pos) - planetRadius planet
-    currentAcceleration t pos = (thrust / (m0 - thrust * t / vEx)) - g (h pos)
 
+-- | Immediate gravity kick by the given angle from the local vertical.
+gravityKick :: Planet -> Position -> Velocity -> Double -> Velocity
+gravityKick planet pos v angle =
+  let vSurfMag = magV (orbitToSurface planet pos v)
+      vSurfMagUp = vSurfMag `mulSV` localYAxis planet pos
+      vSurf' = mulMatrixVector (rotMatrix (-angle)) vSurfMagUp
+  in surfaceToOrbit planet pos vSurf'
+
+isBelowSpeed :: Planet -> Double -> (Time,Velocity,Position) -> Bool
+isBelowSpeed planet speed (_,v,pos) = magV (orbitToSurface planet pos v) < speed

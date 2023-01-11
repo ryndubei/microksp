@@ -1,32 +1,14 @@
-module Plot
-  ( windowWidth
-  , windowHeight
-  , background
-  , plot ) where
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+module Plot ( windowWidth, windowHeight, background, plot ) where
 
 import Graphics.Gloss
 import Lib
-  (Planet(..)
-  , Time
-  , Velocity
-  , Altitude
-  , Vessel(..)
-  , atmosphereHeight
-  , Density
-  , burnTime
-  , planetRadius
-  , Position
-  , twr
-  , toCentre
-  , angleV
-  , magV
-  , localXAxis
-  , projV
-  , altitudeAt
-  , orbitalVel, endMass, hasRotatedBy, orbitToSurface, rotateAroundBy)
-import Data.Bifunctor (bimap)
-import Data.List (nubBy, sortOn, find)
-import Graphics.Gloss.Geometry.Angle (radToDeg)
+  ( Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density
+  , burnTime, planetRadius, Position, twr, toCentre, angleV, magV, altitudeAt
+  , orbitalVel, endMass, hasRotatedBy, orbitToSurface, rotateAroundBy )
+import Data.Bifunctor ( bimap )
+import Data.List ( nubBy, sortOn, find )
+import Graphics.Gloss.Geometry.Angle ( radToDeg )
 
 background :: Color
 background = black
@@ -34,6 +16,26 @@ background = black
 windowWidth, windowHeight :: Float
 windowWidth = 800
 windowHeight = 800
+
+-- | Plot the flight path of the vessel over a canvas representing the planet the vessel is on.
+plot :: [(Altitude,Density)] -> Vessel -> [[(Time,Velocity,Position)]] -> Picture
+plot atmosphereTable vessel flightPath =
+  let stages = map plotStage (init flightPath)
+      freeFall = plotStage (last flightPath)
+  in (scaleFinal (realToFrac (imageScale vessel)) . pictures)
+    $ canvas atmosphereTable vessel
+    -- Ignore the gravity turn for the apsis info
+    : flightInfoText vessel (last flightPath)
+    : zipWith color stageColors stages
+    ++ [color outOfFuelColor freeFall]
+  where
+    planet = currentPlanet vessel
+    plotStage stagePath =
+      let stagePath' = if orbitRefFrame vessel then stagePath else map (compensateForRotation planet) stagePath
+          points = map (\(_,_,pos) -> pos) stagePath'
+          pointsWindowScale = map (bimap (*windowScale planet) (*windowScale planet)) points
+          pathWindow = line $ map (bimap realToFrac realToFrac) pointsWindowScale
+      in translate launchPoint 0 pathWindow
 
 skyHeight :: Float
 skyHeight = windowHeight / 2
@@ -138,30 +140,10 @@ drawPlanet planet =
   in translate x y planetCircle
 
 stageColors :: [Color]
-stageColors = cycle [red,yellow,dark blue,green]
+stageColors = cycle [red,yellow,green]
 
 outOfFuelColor :: Color
 outOfFuelColor = greyN 0.5
-
--- | Plot the flight path of the vessel over a canvas representing the planet the vessel is on.
-plot :: [(Altitude,Density)] -> Vessel -> [[(Time,Velocity,Position)]] -> Picture
-plot atmosphereTable vessel flightPath =
-  let stages = map plotStage (init flightPath)
-      freeFall = plotStage (last flightPath)
-  in (scaleFinal (realToFrac (imageScale vessel)) . pictures)
-    $ canvas atmosphereTable vessel
-    -- Ignore the gravity turn for the apsis info
-    : flightInfoText vessel (last flightPath)
-    : zipWith color stageColors stages
-    ++ [color outOfFuelColor freeFall]
-  where
-    planet = currentPlanet vessel
-    plotStage stagePath =
-      let stagePath' = if orbitRefFrame vessel then stagePath else map (compensateForRotation planet) stagePath
-          points = map (\(_,_,pos) -> pos) stagePath'
-          pointsWindowScale = map (bimap (*windowScale planet) (*windowScale planet)) points
-          pathWindow = line $ map (bimap realToFrac realToFrac) pointsWindowScale
-      in translate launchPoint 0 pathWindow
 
 scaleFinal :: Float -> (Picture -> Picture)
 scaleFinal n = scale (1 / n) (1 / n)
@@ -171,10 +153,10 @@ drawAtmosphere atmosphereTable planet =
   let
     -- reversed to start from top atmosphere layer
     zippedAltitudes = reverse [ (alt1,alt2,d) | ((alt1,d),(alt2,_)) <- zip atmosphereTable' (tail atmosphereTable') ]
-  in pictures $ map (\(a1,a2,d) -> drawLayer a1 a2 d) zippedAltitudes
+  in pictures $ map (\ (a1,a2,d) -> drawLayer a1 a2 d) zippedAltitudes
   where
     -- atmosphere table might have duplicates or be unsorted so we have to do this
-    atmosphereTable' = nubBy (\a b -> fst a == fst b) . sortOn fst $ atmosphereTable
+    atmosphereTable' = nubBy (\ a b -> fst a == fst b) . sortOn fst $ atmosphereTable
     initialDensity = (snd . head) atmosphereTable'
     -- ignore dead parts of function, it used to accept 3 parameters but got revised
     drawLayer _ alt2 d =
@@ -201,7 +183,6 @@ findApsis planet flightPath =
           angle2 = angleHorizon v2 pos2
       in 
         signum angle1 /= signum angle2
-        
 
 flightInfoText :: Vessel -> [(Time,Velocity,Position)] -> Picture
 flightInfoText vessel flightPath = makeTextLines (-2.6*windowWidth,2.6*windowHeight) 6 130 vessel texts
@@ -224,11 +205,6 @@ flightInfoText vessel flightPath = makeTextLines (-2.6*windowWidth,2.6*windowHei
           deltaVText = "Delta-V to circularize: " ++ showNA "m/s" (fmap round deltaVToOrbit)
       in [altText,velText,timeText,deltaVText]
     showNA str = maybe "N/A" (\x -> show x ++ str)
-
-tangentialVel :: Planet -> Velocity -> Position -> Double
-tangentialVel planet v pos =
-  let x = localXAxis planet pos
-  in magV (projV x v)
 
 -- | Convert both flight velocity and position to surface reference frame based on the time
 -- from launch

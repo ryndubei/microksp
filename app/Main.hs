@@ -7,7 +7,7 @@ import AtmosphereData (densityTable, defaultDensityTable, tableToFunction)
 import Input (handleKeys, update)
 import qualified Data.Set as S
 
-import Graphics.Gloss
+import Graphics.Gloss ( play, Display(InWindow), Picture )
 import Graphics.Gloss.Geometry.Angle (degToRad)
 import Control.Exception (catch, IOException)
 import Data.Maybe (fromJust)
@@ -42,17 +42,17 @@ main = do
 getDrawFlight :: IO (Vessel -> Picture)
 getDrawFlight = do
   atmosphereTables <- zip planets <$> mapM perhapsDensityTable planets
-  let atmosphereTable vessel = (fromJust . lookup planet) atmosphereTables where planet = currentPlanet vessel
-  return (\v -> drawFlight (atmosphereTable v) v)
+  let atmosphereTable planet = (fromJust . lookup planet) atmosphereTables
+  return (\ v -> drawFlight (atmosphereTable (currentPlanet v)) v)
   where
     drawFlight atmosphereTable vessel = 
       let atmosphereFunction = tableToFunction atmosphereTable
           flightData = flyFromStart vessel atmosphereFunction
       in plot atmosphereTable vessel flightData
-    planets = [toEnum 0 ..]
+    planets = [toEnum 0 ..] :: [Planet]
     -- If the density table could not be obtained, use the default table ([(0,0)])
     perhapsDensityTable planet = 
       catch (densityTable planet) 
-      (\e -> 
+      (\ e -> 
         hPutStrLn stderr ("Failed to read atmosphere data: " ++ show (e :: IOException)) 
         >> return defaultDensityTable )
