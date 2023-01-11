@@ -9,8 +9,8 @@ data Planet = Kerbin | Duna | Eve | Laythe | Jool deriving (Eq,Show,Enum,Bounded
 
 -- | Any near-unchanging simulation parameters go here.
 data Vessel = Vessel 
-  { dragCoefficientArea :: Double -- ^ Drag coefficient * cross-section area.
-  , engineForce :: Double -- ^ Thrust of the vessel in a vacuum (N)
+  { dragCoefficientArea :: Double -- ^ Drag coefficient * cross-section area. (m^2)
+  , engineForce :: Double -- ^ Total thrust of the vessel in a vacuum (N)
   , engineForceRatioASL :: Double -- ^ Engine force factor at 1 atm pressure
   , exhaustVelocity :: Double -- ^ The exhaust velocity of the engine (m/s)
   , startingMass :: Double -- ^ The total mass of the rocket at start (kg)
@@ -22,7 +22,27 @@ data Vessel = Vessel
   , keys :: S.Set Key -- ^ Keys defining simulation parameters to be changed on next update
   , imageScale :: Int -- ^ factor of image scale down from the default
   , orbitRefFrame :: Bool -- ^ Either surface or orbit reference frame for plotting
+  , followingStages :: [Stage] -- ^ Stages of the vessel after the first stage.
   }
+
+data Stage = Stage
+  { stageMass :: Double -- ^ Initial mass of the stage (kg)
+  , stageThrust :: Double -- ^ Total thrust of the stage (N)
+  , stageIsp :: Double -- ^ Avearage specific impulse (s)
+  , stageDeltaV :: Double -- ^ Delta-V of the stage (m/s)
+  , stageDragArea :: Double -- ^ Drag coefficient * cross-section area. (m^2)
+  } deriving Show
+
+firstStage :: Vessel -> Stage
+firstStage vessel = Stage 
+  { stageMass = startingMass vessel
+  , stageThrust = engineForce vessel
+  , stageIsp = exhaustVelocity vessel / constStandardGravity
+  , stageDeltaV = deltaV vessel
+  , stageDragArea = dragCoefficientArea vessel }
+
+startingStages :: Vessel -> [Stage]
+startingStages vessel = firstStage vessel : followingStages vessel
 
 -- | Datatype for both Vessel and its changing variables (time, velocity and
 -- position).
