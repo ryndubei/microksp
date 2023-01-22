@@ -12,14 +12,8 @@ module AtmosphereData (densityFunction, densityTable, tableToFunction, defaultDe
 import Lib ( Planet(..), Altitude, Temperature, Pressure, Density, molarMass, constGas )
 import Data.Char (toLower)
 import Data.List (sortOn, nubBy, findIndex)
-import System.Directory (XdgDirectory(XdgData), getXdgDirectory)
+import Paths_microksp (getDataFileName)
 import Data.Maybe ( fromJust, isJust )
-
--- | Path from XDG_DATA_HOME in which atmospheric data is stored.
--- For Linux, the default XDG_DATA_HOME is ~/.local/share, while for
--- Windows it is C:/Users/<user>/AppData/Roaming
-atmosphereDataDirectory :: FilePath
-atmosphereDataDirectory = "microksp"
 
 defaultDensityTable :: [(Altitude,Density)]
 defaultDensityTable = [(0,0)]
@@ -61,14 +55,13 @@ lineFunction (x1,y1) (x2,y2) x
 -- stored at atmosphereDataDirectory into a list of (Altitude,Density) pairs.
 densityTable :: Planet -> IO [(Altitude,Density)]
 densityTable planet = do
-  atmosphereFilePath <- getXdgDirectory XdgData atmosphereFile
+  atmosphereFilePath <- getDataFileName atmosphereFile
   dataLines <- lines <$> readFile atmosphereFilePath
   let densityLines = map (processDataLine planet) dataLines
   return densityLines
   where
     planetName = map toLower (show planet)
-    atmosphereFile = 
-      atmosphereDataDirectory ++ "/" ++ planetName ++ "_atmosphere.txt"
+    atmosphereFile = "atmosphere/" ++ planetName ++ "_atmosphere.txt"
 
 -- | Turn a raw data line into an (Altitude,Density) pair, given the Planet.
 processDataLine :: Planet -> String -> (Altitude,Density)

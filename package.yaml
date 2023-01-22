@@ -9,6 +9,9 @@ copyright:           "2022 ryndubei"
 extra-source-files:
 - README.md
 
+data-files:
+- atmosphere/*.txt
+
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
 # category:            Web
@@ -21,7 +24,6 @@ description:         Please see the README on GitHub at <https://github.com/rynd
 dependencies:
 - base >= 4.7 && < 5
 - gloss == 1.13.*
-- directory
 - containers
 
 ghc-options:

@@ -1,7 +1,7 @@
 microksp
 ========
 
-Gravity turn assistant for Kerbal Space Program.
+Gravity turn simulation.
 
 Build
 -----
@@ -15,11 +15,6 @@ stack setup
 stack build
 ```
 Then use `stack run` to run the program.
-
-Setup
------
-
-$XDG_DATA_HOME/microksp (.local/share/microksp on Linux) should contain atmosphere data files <planet (lowercase)>_atmosphere.txt for air resistance on the planet to be taken into account. See the atmosphere directory.
 
 Controls
 --------

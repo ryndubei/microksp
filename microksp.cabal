@@ -17,6 +17,12 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+data-files:
+    atmosphere/duna_atmosphere.txt
+    atmosphere/eve_atmosphere.txt
+    atmosphere/jool_atmosphere.txt
+    atmosphere/kerbin_atmosphere.txt
+    atmosphere/laythe_atmosphere.txt
 
 source-repository head
   type: git
@@ -39,7 +45,6 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
-    , directory
     , gloss ==1.13.*
   default-language: Haskell2010
 
@@ -55,7 +60,6 @@ executable microksp-exe
   build-depends:
       base >=4.7 && <5
     , containers
-    , directory
     , gloss ==1.13.*
     , microksp
   default-language: Haskell2010
@@ -73,7 +77,6 @@ test-suite microksp-test
   build-depends:
       base >=4.7 && <5
     , containers
-    , directory
     , gloss ==1.13.*
     , microksp
   default-language: Haskell2010
