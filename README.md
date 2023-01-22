@@ -3,6 +3,8 @@ microksp
 
 Gravity turn simulation.
 
+![Example image.](image.png)
+
 Build
 -----
 
