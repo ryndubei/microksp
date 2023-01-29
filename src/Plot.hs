@@ -4,10 +4,10 @@ module Plot ( windowWidth, windowHeight, background, plot ) where
 import Graphics.Gloss
 import Lib
   ( Planet(..), Time, Velocity, Altitude, Vessel(..), atmosphereHeight, Density
-  , burnTime, planetRadius, Position, twr, toCentre, angleV, magV, altitudeAt
-  , orbitalVel, endMass, hasRotatedBy, orbitToSurface, rotateAroundBy )
+  , burnTime, planetRadius, Position, twr, magV, altitudeAt
+  , endMass, hasRotatedBy, orbitToSurface, rotateAroundBy, deltaVToOrbit, findApsis )
 import Data.Bifunctor ( bimap )
-import Data.List ( nubBy, sortOn, find )
+import Data.List ( nubBy, sortOn )
 import Graphics.Gloss.Geometry.Angle ( radToDeg )
 
 background :: Color
@@ -48,7 +48,7 @@ windowScale :: Planet -> Double
 windowScale planet = realToFrac windowHeight / windowHeightMetres planet
 
 launchPoint :: Float
-launchPoint = -0.4 * windowWidth
+launchPoint = (-0.4) * windowWidth
 
 planetCentre :: Planet -> (Float,Float)
 planetCentre planet =
@@ -171,19 +171,6 @@ drawAtmosphere atmosphereTable planet =
         opacity = realToFrac $ d / initialDensity
         r2 = realToFrac $ windowScale planet * (alt2 + planetRadius planet)
 
-findApsis :: Planet -> [(Time,Velocity,Position)] -> Maybe (Time,Velocity,Position)
-findApsis planet flightPath =
-  let flightPointPairs = zip flightPath (tail flightPath)
-      apsis = find (uncurry isApsis) flightPointPairs
-  in fmap fst apsis
-  where
-    angleHorizon v pos = angleV v (toCentre planet pos) - (pi / 2)
-    isApsis (_,v1,pos1) (_,v2,pos2) =
-      let angle1 = angleHorizon v1 pos1
-          angle2 = angleHorizon v2 pos2
-      in 
-        signum angle1 /= signum angle2
-
 flightInfoText :: Vessel -> [(Time,Velocity,Position)] -> Picture
 flightInfoText vessel flightPath = makeTextLines (-2.6*windowWidth,2.6*windowHeight) 6 130 vessel texts
   where
@@ -193,16 +180,12 @@ flightInfoText vessel flightPath = makeTextLines (-2.6*windowWidth,2.6*windowHei
     apVel = fmap (\(_,v,_) -> v) maybeApsis
     apPos = fmap (\(_,_,pos) -> pos) maybeApsis
     aph = fmap (altitudeAt planet) apPos
-    orbVel = fmap (orbitalVel planet) aph
-    deltaVToOrbit = do
-      v2 <- orbVel
-      v1 <- magV <$> apVel
-      return (v2 - v1)
+    dv = deltaVToOrbit planet <$> aph <*> fmap magV apVel
     texts =
       let altText = "Apsis altitude: " ++ showNA "m" (fmap round aph)
           velText = "Apsis velocity: " ++ showNA "m/s" (fmap (round . magV) apVel)
           timeText = "Time to apsis from launch: " ++ showNA "s" (fmap round apTime)
-          deltaVText = "Delta-V to circularize: " ++ showNA "m/s" (fmap round deltaVToOrbit)
+          deltaVText = "Delta-V to circularize: " ++ showNA "m/s" (fmap round dv)
       in [altText,velText,timeText,deltaVText]
     showNA str = maybe "N/A" (\x -> show x ++ str)
 
@@ -211,8 +194,7 @@ flightInfoText vessel flightPath = makeTextLines (-2.6*windowWidth,2.6*windowHei
 compensateForRotation :: Planet -> (Time,Velocity,Position) -> (Time,Velocity,Position)
 -- Assumes planet centre is at (0,-planetRadius planet)
 compensateForRotation planet (t,v,pos) = (t,v',pos')
-  where 
+  where
     angularDisplacement = hasRotatedBy planet t
     v' = orbitToSurface planet pos v
     pos' = rotateAroundBy (0,-planetRadius planet) pos angularDisplacement
-    

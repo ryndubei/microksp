@@ -3,6 +3,7 @@ module Lib where
 
 import Data.Set as S
 import Graphics.Gloss.Interface.Pure.Game (Key)
+import Data.Foldable (find)
 
 -- | Datatype for planets with an atmosphere 
 data Planet = Kerbin | Duna | Eve | Laythe | Jool deriving (Eq,Show,Enum,Bounded)
@@ -194,8 +195,28 @@ gFieldStrength planet h = planetMU planet / (r*r)
 
 -- | Given a Planet and an altitude above sea level, find the orbital velocity
 -- for a circular orbit at that altitude.
-orbitalVel :: Planet -> Double -> Double
+orbitalVel :: Planet -> Altitude -> Double
 orbitalVel planet h = sqrt(planetMU planet / (h + planetRadius planet))
+
+-- | Find the delta-V required to get into a circular orbit around the planet,
+-- depending on the given apsis speed.
+deltaVToOrbit :: Planet -> Altitude -> Double -> Double
+deltaVToOrbit planet h v = orbitalVel planet h - v
+
+-- | Find the point where the trajectory has almost 0 velocity in the local vertical
+-- in its flight path, if that point exists.
+findApsis :: Planet -> [(Time,Velocity,Position)] -> Maybe (Time,Velocity,Position)
+findApsis planet flightPath =
+  let flightPointPairs = zip flightPath (tail flightPath)
+      apsis = find (uncurry isApsis) flightPointPairs
+  in fmap fst apsis
+  where
+    angleHorizon v pos = angleV v (toCentre planet pos) - (pi / 2)
+    isApsis (_,v1,pos1) (_,v2,pos2) =
+      let angle1 = angleHorizon v1 pos1
+          angle2 = angleHorizon v2 pos2
+      in 
+        signum angle1 /= signum angle2
 
 -- | Given a Planet and a Position, return the vector in the direction of the
 -- planet's centre from that position.
