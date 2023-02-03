@@ -33,6 +33,7 @@ library
       AtmosphereData
       Input
       Lib
+      Optimise
       Plot
       Simulation
   other-modules:
