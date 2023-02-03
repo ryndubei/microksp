@@ -1,22 +1,27 @@
-module Input (handleKeys, update) where
+module Input (handleKeys', update) where
 
 import Lib
 import Graphics.Gloss.Interface.Pure.Game
 import qualified Data.Set as S
 import Graphics.Gloss.Geometry.Angle (degToRad)
+import Optimise (findBestLaunch)
+
+handleKeys' :: (Planet -> (Altitude -> Density)) -> Event -> Vessel -> Vessel
+handleKeys' f (EventKey (Char 'o') Down _ _) vessel = findBestLaunch (f (currentPlanet vessel)) vessel
+handleKeys' _ event vessel = handleKeys event vessel
 
 handleKeys :: Event -> Vessel -> Vessel
 handleKeys (EventKey (Char 'r') Down _ _) vessel = vessel { orbitRefFrame = not (orbitRefFrame vessel)}
 handleKeys (EventKey (Char 'z') Down _ _) vessel =
   if imageScale vessel <= 1
-    then vessel 
+    then vessel
     else vessel { imageScale = imageScale vessel `div` 2}
 handleKeys (EventKey (Char 'x') Down _ _) vessel = vessel { imageScale = imageScale vessel * 2}
-handleKeys (EventKey (Char 'p') Down _ _) vessel = 
-  vessel { currentPlanet = if currentPlanet vessel /= maxBound 
+handleKeys (EventKey (Char 'p') Down _ _) vessel =
+  vessel { currentPlanet = if currentPlanet vessel /= maxBound
                             then succ (currentPlanet vessel)
                             else minBound }
-handleKeys (EventKey k Down _ _) vessel = 
+handleKeys (EventKey k Down _ _) vessel =
   if isMovementKey k
     then vessel {keys = S.insert k (keys vessel)}
     else vessel
@@ -71,9 +76,9 @@ handleMove vessel = S.foldr moveKeys vessel (keys vessel)
     moveKeys (SpecialKey k) vessel' =
       case k of
         KeyUp -> vessel' { gravityKickSpeed = gravityKickSpeed vessel' + 2 }
-        KeyDown -> if gravityKickSpeed vessel' - 2 >= 0
+        KeyDown -> if gravityKickSpeed vessel' - 2 >= 2
           then vessel' { gravityKickSpeed = gravityKickSpeed vessel' - 2}
-          else vessel' { gravityKickSpeed = 0}
+          else vessel' { gravityKickSpeed = 2}
         KeyShiftL -> vessel' { engineForce = 1.01 * engineForce vessel' }
         -- prevent engine from being weaker than 1g at 0m
         KeyCtrlL -> if 0.99 * engineForce vessel' >= gFieldStrength (currentPlanet vessel') 0 * startingMass vessel'

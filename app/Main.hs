@@ -1,10 +1,10 @@
 module Main (main) where
 
-import Lib (Vessel(..), Planet(..), Stage(..))
+import Lib (Vessel(..), Planet(..), Stage(..), Altitude, Density)
 import Plot (windowWidth, windowHeight, background, plot)
 import Simulation (flyFromStart)
 import AtmosphereData (densityTable, defaultDensityTable, tableToFunction)
-import Input (handleKeys, update)
+import Input (handleKeys', update)
 import qualified Data.Set as S
 
 import Graphics.Gloss ( play, Display(InWindow), Picture )
@@ -27,7 +27,7 @@ initialConditions = Vessel
   , currentPlanet = Kerbin
   , gravityKickAngle = realToFrac $ degToRad 15.0
   , gravityKickSpeed = 150
-  , deltaV = 1155
+  , deltaV = 2900
   , keys = S.empty
   , imageScale = 1
   , orbitRefFrame = False
@@ -36,19 +36,11 @@ initialConditions = Vessel
 
 main :: IO ()
 main = do
-  drawFlight <- getDrawFlight
-  play window background 10 initialConditions drawFlight handleKeys update
-
-getDrawFlight :: IO (Vessel -> Picture)
-getDrawFlight = do
   atmosphereTables <- zip planets <$> mapM perhapsDensityTable planets
-  let atmosphereTable planet = (fromJust . lookup planet) atmosphereTables
-  return (\ v -> drawFlight (atmosphereTable (currentPlanet v)) v)
+  let drawFlight = getDrawFlight atmosphereTables
+  let f planet = (tableToFunction . fromJust . lookup planet) atmosphereTables
+  play window background 10 initialConditions drawFlight (handleKeys' f) update
   where
-    drawFlight atmosphereTable vessel = 
-      let atmosphereFunction = tableToFunction atmosphereTable
-          flightData = flyFromStart vessel atmosphereFunction
-      in plot atmosphereTable vessel flightData
     planets = [toEnum 0 ..] :: [Planet]
     -- If the density table could not be obtained, use the default table ([(0,0)])
     perhapsDensityTable planet = 
@@ -56,3 +48,13 @@ getDrawFlight = do
       (\ e -> 
         hPutStrLn stderr ("Failed to read atmosphere data: " ++ show (e :: IOException)) 
         >> return defaultDensityTable )
+
+getDrawFlight :: [(Planet,[(Altitude,Density)])] -> (Vessel -> Picture)
+getDrawFlight atmosphereTables =
+  let atmosphereTable planet = (fromJust . lookup planet) atmosphereTables
+  in (\ v -> drawFlight (atmosphereTable (currentPlanet v)) v)
+  where
+    drawFlight atmosphereTable vessel = 
+      let atmosphereFunction = tableToFunction atmosphereTable
+          flightData = flyFromStart vessel atmosphereFunction
+      in plot atmosphereTable vessel flightData
